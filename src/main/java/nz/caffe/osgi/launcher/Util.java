@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+/**
+ */
 public class Util
 {
     private static final String DELIM_START = "${";
@@ -49,18 +51,23 @@ public class Util
      *         property placeholder syntax or a recursive variable reference.
     **/
     public static String substVars(String val, String currentKey,
-        Map cycleMap, Properties configProps)
+        final Map<String, String> cycleMap, Properties configProps)
         throws IllegalArgumentException
     {
         // If there is currently no cycle map, then create
         // one for detecting cycles for this invocation.
+        final Map<String, String> cycles;
         if (cycleMap == null)
         {
-            cycleMap = new HashMap();
+            cycles = new HashMap<String, String>();
+        }
+        else
+        {
+            cycles = cycleMap;
         }
 
         // Put the current key in the cycle map.
-        cycleMap.put(currentKey, currentKey);
+        cycles.put(currentKey, currentKey);
 
         // Assume we have a value that is something like:
         // "leading ${foo.${bar}} middle ${baz} trailing"
@@ -113,7 +120,7 @@ public class Util
             val.substring(startDelim + DELIM_START.length(), stopDelim);
 
         // Verify that this is not a recursive variable reference.
-        if (cycleMap.get(variable) != null)
+        if (cycles.get(variable) != null)
         {
             throw new IllegalArgumentException(
                 "recursive variable reference: " + variable);
@@ -133,21 +140,21 @@ public class Util
         // Remove the found variable from the cycle map, since
         // it may appear more than once in the value and we don't
         // want such situations to appear as a recursive reference.
-        cycleMap.remove(variable);
+        cycles.remove(variable);
 
         // Append the leading characters, the substituted value of
         // the variable, and the trailing characters to get the new
         // value.
-        val = val.substring(0, startDelim)
+        final String val2 = val.substring(0, startDelim)
             + substValue
             + val.substring(stopDelim + DELIM_STOP.length(), val.length());
 
         // Now perform substitution again, since there could still
         // be substitutions to make.
-        val = substVars(val, currentKey, cycleMap, configProps);
+        final String val3 = substVars(val2, currentKey, cycles, configProps);
 
         // Return the value.
-        return val;
+        return val3;
     }
 
 }

@@ -19,17 +19,25 @@
 package nz.caffe.osgi.launcher;
 
 import java.io.File;
-import java.util.*;
-import org.osgi.framework.*;
-import org.osgi.service.startlevel.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.StringTokenizer;
 
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleException;
+import org.osgi.framework.Constants;
+import org.osgi.service.startlevel.StartLevel;
+
+/**
+ */
 public class AutoProcessor
 {
-    /**
-     * The property name used for the bundle directory.
-     * @deprecated use {@link AutoProcessor#AUTO_DEPLOY_DIR_PROPERTY}
-    **/
-    public static final String AUTO_DEPLOY_DIR_PROPERY = "felix.auto.deploy.dir";
     /**
      * The property name used for the bundle directory.
     **/
@@ -40,18 +48,8 @@ public class AutoProcessor
     public static final String AUTO_DEPLOY_DIR_VALUE = "bundle";
     /**
      * The property name used to specify auto-deploy actions.
-     * @deprecated use {@link AutoProcessor#AUTO_DEPLOY_ACTION_PROPERTY}
-    **/
-    public static final String AUTO_DEPLOY_ACTION_PROPERY = "felix.auto.deploy.action";
-    /**
-     * The property name used to specify auto-deploy actions.
     **/
     public static final String AUTO_DEPLOY_ACTION_PROPERTY = "felix.auto.deploy.action";
-    /**
-     * The property name used to specify auto-deploy start level.
-     * @deprecated use {@link AutoProcessor#AUTO_DEPLOY_STARTLEVEL_PROPERTY}
-    **/
-    public static final String AUTO_DEPLOY_STARTLEVEL_PROPERY = "felix.auto.deploy.startlevel";
     /**
      * The property name used to specify auto-deploy start level.
     **/
@@ -87,9 +85,9 @@ public class AutoProcessor
      * @param configMap Map of configuration properties.
      * @param context The system bundle context.
     **/
-    public static void process(Map configMap, BundleContext context)
+    public static void process(Map<String, String> configMap, BundleContext context)
     {
-        configMap = (configMap == null) ? new HashMap() : configMap;
+        configMap = (configMap == null) ? new HashMap<String, String>() : configMap;
         processAutoDeploy(configMap, context);
         processAutoProperties(configMap, context);
     }
@@ -100,12 +98,12 @@ public class AutoProcessor
      * specified deploy actions.
      * </p>
      */
-    private static void processAutoDeploy(Map configMap, BundleContext context)
+    private static void processAutoDeploy(Map<String, String> configMap, BundleContext context)
     {
         // Determine if auto deploy actions to perform.
-        String action = (String) configMap.get(AUTO_DEPLOY_ACTION_PROPERTY);
+        String action = configMap.get(AUTO_DEPLOY_ACTION_PROPERTY);
         action = (action == null) ? "" : action;
-        List actionList = new ArrayList();
+        List<String> actionList = new ArrayList<String>();
         StringTokenizer st = new StringTokenizer(action, ",");
         while (st.hasMoreTokens())
         {
@@ -143,7 +141,7 @@ public class AutoProcessor
             }
 
             // Get list of already installed bundles as a map.
-            Map installedBundleMap = new HashMap();
+            Map<String, Bundle> installedBundleMap = new HashMap<String, Bundle>();
             Bundle[] bundles = context.getBundles();
             for (int i = 0; i < bundles.length; i++)
             {
@@ -151,12 +149,12 @@ public class AutoProcessor
             }
 
             // Get the auto deploy directory.
-            String autoDir = (String) configMap.get(AUTO_DEPLOY_DIR_PROPERTY);
+            String autoDir = configMap.get(AUTO_DEPLOY_DIR_PROPERTY);
             autoDir = (autoDir == null) ? AUTO_DEPLOY_DIR_VALUE : autoDir;
             // Look in the specified bundle directory to create a list
             // of all JAR files to install.
             File[] files = new File(autoDir).listFiles();
-            List jarList = new ArrayList();
+            List<File> jarList = new ArrayList<File>();
             if (files != null)
             {
                 Arrays.sort(files);
@@ -170,14 +168,14 @@ public class AutoProcessor
             }
 
             // Install bundle JAR files and remember the bundle objects.
-            final List startBundleList = new ArrayList();
+            final List<Bundle> startBundleList = new ArrayList<Bundle>();
             for (int i = 0; i < jarList.size(); i++)
             {
                 // Look up the bundle by location, removing it from
                 // the map of installed bundles so the remaining bundles
                 // indicate which bundles may need to be uninstalled.
-                Bundle b = (Bundle) installedBundleMap.remove(
-                    ((File) jarList.get(i)).toURI().toString());
+                Bundle b = installedBundleMap.remove(
+                    jarList.get(i).toURI().toString());
 
                 try
                 {
@@ -186,7 +184,7 @@ public class AutoProcessor
                     if ((b == null) && actionList.contains(AUTO_DEPLOY_INSTALL_VALUE))
                     {
                         b = context.installBundle(
-                            ((File) jarList.get(i)).toURI().toString());
+                            jarList.get(i).toURI().toString());
                     }
                     // If the bundle is already installed, then update it
                     // if the 'update' action is present.
@@ -215,10 +213,10 @@ public class AutoProcessor
             // the 'uninstall' action is present.
             if (actionList.contains(AUTO_DEPLOY_UNINSTALL_VALUE))
             {
-                for (Iterator it = installedBundleMap.entrySet().iterator(); it.hasNext(); )
+                for (Iterator<Entry<String, Bundle>> it = installedBundleMap.entrySet().iterator(); it.hasNext(); )
                 {
-                    Map.Entry entry = (Map.Entry) it.next();
-                    Bundle b = (Bundle) entry.getValue();
+                    Entry<String, Bundle> entry = it.next();
+                    Bundle b = entry.getValue();
                     if (b.getBundleId() != 0)
                     {
                         try
@@ -242,7 +240,7 @@ public class AutoProcessor
                 {
                     try
                     {
-                        ((Bundle) startBundleList.get(i)).start();
+                        startBundleList.get(i).start();
                     }
                     catch (BundleException ex)
                     {
@@ -276,9 +274,9 @@ public class AutoProcessor
         // property name, where "n" is the desired start level for the list
         // of bundles. If no start level is specified, the default start
         // level is assumed.
-        for (Iterator i = configMap.keySet().iterator(); i.hasNext(); )
+        for (Iterator<String> i = configMap.keySet().iterator(); i.hasNext(); )
         {
-            String key = ((String) i.next()).toLowerCase();
+            String key = i.next().toLowerCase();
 
             // Ignore all keys that are not an auto property.
             if (!key.startsWith(AUTO_INSTALL_PROP) && !key.startsWith(AUTO_START_PROP))
@@ -322,9 +320,9 @@ if (ex.getCause() != null)
         }
 
         // Now loop through the auto-start bundles and start them.
-        for (Iterator i = configMap.keySet().iterator(); i.hasNext(); )
+        for (Iterator<String> i = configMap.keySet().iterator(); i.hasNext(); )
         {
-            String key = ((String) i.next()).toLowerCase();
+            String key = i.next().toLowerCase();
             if (key.startsWith(AUTO_START_PROP))
             {
                 StringTokenizer st = new StringTokenizer((String) configMap.get(key), "\" ", true);

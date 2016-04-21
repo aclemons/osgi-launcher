@@ -18,10 +18,19 @@
  */
 package nz.caffe.osgi.launcher;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.*;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.osgi.framework.Constants;
 import org.osgi.framework.FrameworkEvent;
@@ -43,7 +52,6 @@ public class Main
      * Switch for specifying bundle directory.
     **/
     public static final String BUNDLE_DIR_SWITCH = "-b";
-
     /**
      * The property name used to specify whether the launcher should
      * install a shutdown hook.
@@ -71,8 +79,6 @@ public class Main
      * Name of the configuration directory.
      */
     public static final String CONFIG_DIRECTORY = "conf";
-
-    private static Framework m_fwk = null;
 
     /**
      * <p>
@@ -256,20 +262,24 @@ public class Main
             configProps.put(Constants.FRAMEWORK_STORAGE, cacheDir);
         }
 
+        final AtomicReference<Framework> fwkRef = new AtomicReference<Framework>();
+
         // If enabled, register a shutdown hook to make sure the framework is
         // cleanly shutdown when the VM exits.
         String enableHook = configProps.get(SHUTDOWN_HOOK_PROP);
         if ((enableHook == null) || !enableHook.equalsIgnoreCase("false"))
         {
             Runtime.getRuntime().addShutdownHook(new Thread("Felix Shutdown Hook") {
+                @Override
                 public void run()
                 {
                     try
                     {
-                        if (m_fwk != null)
+                        final Framework fwk = fwkRef.get();
+                        if (fwk != null)
                         {
-                            m_fwk.stop();
-                            m_fwk.waitForStop(0);
+                            fwk.stop();
+                            fwk.waitForStop(0);
                         }
                     }
                     catch (Exception ex)
@@ -284,19 +294,20 @@ public class Main
         {
             // Create an instance of the framework.
             FrameworkFactory factory = getFrameworkFactory();
-            m_fwk = factory.newFramework(configProps);
+            final Framework fwk = factory.newFramework(configProps);
+            fwkRef.set(fwk);
             // Initialize the framework, but don't start it yet.
-            m_fwk.init();
+            fwk.init();
             // Use the system bundle context to process the auto-deploy
             // and auto-install/auto-start properties.
-            AutoProcessor.process(configProps, m_fwk.getBundleContext());
+            AutoProcessor.process(configProps, fwk.getBundleContext());
             FrameworkEvent event;
             do
             {
                 // Start the framework.
-                m_fwk.start();
+                fwk.start();
                 // Wait for framework to stop to exit the VM.
-                event = m_fwk.waitForStop(0);
+                event = fwk.waitForStop(0);
             }
             // If the framework was updated, then restart it.
             while (event.getType() == FrameworkEvent.STOPPED_UPDATE);
@@ -446,7 +457,7 @@ public class Main
         }
 
         // Perform variable substitution on specified properties.
-        for (Enumeration e = props.propertyNames(); e.hasMoreElements(); )
+        for (Enumeration<?> e = props.propertyNames(); e.hasMoreElements(); )
         {
             String name = (String) e.nextElement();
             System.setProperty(name,
@@ -555,7 +566,7 @@ public class Main
         // Perform variable substitution for system properties and
         // convert to dictionary.
         Map<String, String> map = new HashMap<String, String>();
-        for (Enumeration e = props.propertyNames(); e.hasMoreElements(); )
+        for (Enumeration<?> e = props.propertyNames(); e.hasMoreElements(); )
         {
             String name = (String) e.nextElement();
             map.put(name,
@@ -565,9 +576,9 @@ public class Main
         return map;
     }
 
-    public static void copySystemProperties(Map configProps)
+    public static void copySystemProperties(Map<String, String> configProps)
     {
-        for (Enumeration e = System.getProperties().propertyNames();
+        for (Enumeration<?> e = System.getProperties().propertyNames();
              e.hasMoreElements(); )
         {
             String key = (String) e.nextElement();
