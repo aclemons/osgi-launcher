@@ -84,12 +84,14 @@ public class AutoProcessor
      * configuration property processing during.
      * @param configMap Map of configuration properties.
      * @param context The system bundle context.
+     * @param callback the callback to use to list and precess files from a dir
+     * @param loggingCallback
     **/
-    public static void process(Map<String, String> configMap, BundleContext context, BundleCallback callback)
+    public static void process(final Map<String, String> configMap, BundleContext context, BundleCallback callback, LoggingCallback loggingCallback)
     {
-        configMap = (configMap == null) ? new HashMap<String, String>() : configMap;
-        processAutoDeploy(configMap, context, callback);
-        processAutoProperties(configMap, context);
+        final Map<String, String> safeConfigMap = (configMap == null) ? new HashMap<String, String>() : configMap;
+        processAutoDeploy(safeConfigMap, context, callback, loggingCallback);
+        processAutoProperties(safeConfigMap, context, loggingCallback);
     }
 
     /**
@@ -98,7 +100,7 @@ public class AutoProcessor
      * specified deploy actions.
      * </p>
      */
-    private static void processAutoDeploy(Map<String, String> configMap, BundleContext context, BundleCallback callback)
+    private static void processAutoDeploy(Map<String, String> configMap, BundleContext context, BundleCallback callback, LoggingCallback loggingCallback)
     {
         // Determine if auto deploy actions to perform.
         String action = configMap.get(AUTO_DEPLOY_ACTION_PROPERTY);
@@ -204,8 +206,7 @@ public class AutoProcessor
                 }
                 catch (BundleException ex)
                 {
-                    System.err.println("Auto-deploy install: "
-                        + ex + ((ex.getCause() != null) ? " - " + ex.getCause() : ""));
+                    loggingCallback.error("Auto-deploy install failed for " + location + ".", ex);
                 }
             }
 
@@ -225,8 +226,7 @@ public class AutoProcessor
                         }
                         catch (BundleException ex)
                         {
-                        System.err.println("Auto-deploy uninstall: "
-                            + ex + ((ex.getCause() != null) ? " - " + ex.getCause() : ""));
+                            loggingCallback.error("Auto-deploy uninstall failed for " + b.getLocation() + ".", ex);
                         }
                     }
                 }
@@ -244,8 +244,7 @@ public class AutoProcessor
                     }
                     catch (BundleException ex)
                     {
-                        System.err.println("Auto-deploy start: "
-                            + ex + ((ex.getCause() != null) ? " - " + ex.getCause() : ""));
+                        loggingCallback.error("Auto-deploy start failed for " + startBundleList.get(i).getLocation() + ".", ex);
                     }
                 }
             }
@@ -258,7 +257,7 @@ public class AutoProcessor
      * specified configuration properties.
      * </p>
      */
-    private static void processAutoProperties(Map configMap, BundleContext context)
+    private static void processAutoProperties(Map configMap, BundleContext context, LoggingCallback loggingCallback)
     {
         // Retrieve the Start Level service, since it will be needed
         // to set the start level of the installed bundles.
@@ -296,7 +295,7 @@ public class AutoProcessor
                 }
                 catch (NumberFormatException ex)
                 {
-                    System.err.println("Invalid property: " + key);
+                    loggingCallback.warn("Invalid auto-start property " + key + ".", ex);
                 }
             }
 
@@ -311,10 +310,7 @@ public class AutoProcessor
                 }
                 catch (Exception ex)
                 {
-                    System.err.println("Auto-properties install: " + location + " ("
-                        + ex + ((ex.getCause() != null) ? " - " + ex.getCause() : "") + ")");
-if (ex.getCause() != null)
-    ex.printStackTrace();
+                    loggingCallback.error("Auto-properties install for " + location + " failed.", ex);
                 }
             }
         }
@@ -339,8 +335,7 @@ if (ex.getCause() != null)
                     }
                     catch (Exception ex)
                     {
-                        System.err.println("Auto-properties start: " + location + " ("
-                            + ex + ((ex.getCause() != null) ? " - " + ex.getCause() : "") + ")");
+                        loggingCallback.error("Auto-properties start for " + location + " failed.", ex);
                     }
                 }
             }

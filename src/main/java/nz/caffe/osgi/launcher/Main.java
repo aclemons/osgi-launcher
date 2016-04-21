@@ -38,6 +38,7 @@ import org.osgi.framework.launch.Framework;
 import org.osgi.framework.launch.FrameworkFactory;
 
 import nz.caffe.osgi.launcher.impl.FileSystemCallback;
+import nz.caffe.osgi.launcher.impl.SystemErrorLoggingCallback;
 
 /**
  * <p>
@@ -296,11 +297,11 @@ public class Main
             FrameworkFactory factory = getFrameworkFactory();
             final Framework fwk = factory.newFramework(configProps);
             fwkRef.set(fwk);
-            // Initialize the framework, but don't start it yet.
+            // Initialise the framework, but don't start it yet.
             fwk.init();
             // Use the system bundle context to process the auto-deploy
             // and auto-install/auto-start properties.
-            AutoProcessor.process(configProps, fwk.getBundleContext(), new FileSystemCallback());
+            AutoProcessor.process(configProps, fwk.getBundleContext(), new FileSystemCallback(), new SystemErrorLoggingCallback());
             FrameworkEvent event;
             do
             {
