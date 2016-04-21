@@ -37,6 +37,8 @@ import org.osgi.framework.FrameworkEvent;
 import org.osgi.framework.launch.Framework;
 import org.osgi.framework.launch.FrameworkFactory;
 
+import nz.caffe.osgi.launcher.impl.FileSystemCallback;
+
 /**
  * <p>
  * This class is the default way to instantiate and execute the framework. It is not
@@ -298,7 +300,7 @@ public class Main
             fwk.init();
             // Use the system bundle context to process the auto-deploy
             // and auto-install/auto-start properties.
-            AutoProcessor.process(configProps, fwk.getBundleContext());
+            AutoProcessor.process(configProps, fwk.getBundleContext(), new FileSystemCallback());
             FrameworkEvent event;
             do
             {

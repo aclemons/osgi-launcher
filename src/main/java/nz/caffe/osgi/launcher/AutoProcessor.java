@@ -18,9 +18,9 @@
  */
 package nz.caffe.osgi.launcher;
 
-import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -85,10 +85,10 @@ public class AutoProcessor
      * @param configMap Map of configuration properties.
      * @param context The system bundle context.
     **/
-    public static void process(Map<String, String> configMap, BundleContext context)
+    public static void process(Map<String, String> configMap, BundleContext context, BundleCallback callback)
     {
         configMap = (configMap == null) ? new HashMap<String, String>() : configMap;
-        processAutoDeploy(configMap, context);
+        processAutoDeploy(configMap, context, callback);
         processAutoProperties(configMap, context);
     }
 
@@ -98,7 +98,7 @@ public class AutoProcessor
      * specified deploy actions.
      * </p>
      */
-    private static void processAutoDeploy(Map<String, String> configMap, BundleContext context)
+    private static void processAutoDeploy(Map<String, String> configMap, BundleContext context, BundleCallback callback)
     {
         // Determine if auto deploy actions to perform.
         String action = configMap.get(AUTO_DEPLOY_ACTION_PROPERTY);
@@ -153,19 +153,8 @@ public class AutoProcessor
             autoDir = (autoDir == null) ? AUTO_DEPLOY_DIR_VALUE : autoDir;
             // Look in the specified bundle directory to create a list
             // of all JAR files to install.
-            File[] files = new File(autoDir).listFiles();
-            List<File> jarList = new ArrayList<File>();
-            if (files != null)
-            {
-                Arrays.sort(files);
-                for (int i = 0; i < files.length; i++)
-                {
-                    if (files[i].getName().endsWith(".jar"))
-                    {
-                        jarList.add(files[i]);
-                    }
-                }
-            }
+
+            List<String> jarList = callback.listBundles(autoDir);
 
             // Install bundle JAR files and remember the bundle objects.
             final List<Bundle> startBundleList = new ArrayList<Bundle>();
@@ -174,8 +163,8 @@ public class AutoProcessor
                 // Look up the bundle by location, removing it from
                 // the map of installed bundles so the remaining bundles
                 // indicate which bundles may need to be uninstalled.
-                Bundle b = installedBundleMap.remove(
-                    jarList.get(i).toURI().toString());
+                final String location = jarList.get(i);
+                Bundle b = installedBundleMap.remove(location);
 
                 try
                 {
@@ -183,8 +172,19 @@ public class AutoProcessor
                     // if the 'install' action is present.
                     if ((b == null) && actionList.contains(AUTO_DEPLOY_INSTALL_VALUE))
                     {
-                        b = context.installBundle(
-                            jarList.get(i).toURI().toString());
+                        InputStream stream = callback.openStream(location);
+                        try {
+                            b = context.installBundle(location, stream);
+                        } finally {
+                            try
+                            {
+                                stream.close();
+                            } catch (IOException e)
+                            {
+                                // ignored
+                            }
+                        }
+
                     }
                     // If the bundle is already installed, then update it
                     // if the 'update' action is present.

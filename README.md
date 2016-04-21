@@ -13,4 +13,10 @@ not been submitted upstream.
 
 The launcher should be able to start an osgi runtime with felix or equinox.
 
+## WAR Deployments
+
+The launcher does not require the servlet container to unpack the war file.
+Other components in your runtime may make this assumption, but it is not
+required for the launcher code.
+
 More details to come.
