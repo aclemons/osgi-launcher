@@ -25,11 +25,12 @@ import java.util.List;
 
 import org.osgi.framework.BundleException;
 
-import nz.caffe.osgi.launcher.BundleCallback;
+import nz.caffe.osgi.launcher.LoadCallback;
 
 /**
+ * Allow loading bundles from simple directories on the file system.
  */
-public final class FileSystemCallback implements BundleCallback
+public final class FileSystemCallback implements LoadCallback
 {
 
     public List<String> listBundles(final String directory)

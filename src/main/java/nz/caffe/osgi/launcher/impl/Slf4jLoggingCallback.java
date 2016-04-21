@@ -15,24 +15,28 @@
  */
 package nz.caffe.osgi.launcher.impl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import nz.caffe.osgi.launcher.LoggingCallback;
 
 /**
- * Default implementation for the command line launcher. It uses
- * stderr to print its error messages.
+ * Default implementation for the command line launcher. It uses stderr to print
+ * its error messages.
  */
-public final class SystemErrorLoggingCallback implements LoggingCallback
+public final class Slf4jLoggingCallback implements LoggingCallback
 {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public void error(final String message, final Throwable ex)
     {
-        System.err.println(message + " : " + ex + ((ex.getCause() != null) ? " - " + ex.getCause() : ""));
-        ex.printStackTrace();
+        this.logger.error(message, ex);
     }
 
     public void warn(final String message, final Throwable ex)
     {
-        System.err.println(message + " : " + ex + ((ex.getCause() != null) ? " - " + ex.getCause() : ""));
+        this.logger.warn(message, ex);
     }
 
 }

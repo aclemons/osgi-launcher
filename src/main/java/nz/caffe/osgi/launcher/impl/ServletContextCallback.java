@@ -25,12 +25,12 @@ import javax.servlet.ServletContext;
 
 import org.osgi.framework.BundleException;
 
-import nz.caffe.osgi.launcher.BundleCallback;
+import nz.caffe.osgi.launcher.LoadCallback;
 
 /**
  * Allow loading bundles from inside a WAR file.
  */
-public class ServletContextCallback implements BundleCallback
+public class ServletContextCallback implements LoadCallback
 {
 
     private final ServletContext servletContext;

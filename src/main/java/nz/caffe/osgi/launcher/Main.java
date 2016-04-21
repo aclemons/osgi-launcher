@@ -18,24 +18,8 @@
  */
 package nz.caffe.osgi.launcher;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicReference;
-
-import org.osgi.framework.Constants;
 import org.osgi.framework.FrameworkEvent;
 import org.osgi.framework.launch.Framework;
-import org.osgi.framework.launch.FrameworkFactory;
 
 import nz.caffe.osgi.launcher.impl.FileSystemCallback;
 import nz.caffe.osgi.launcher.impl.SystemErrorLoggingCallback;
@@ -51,37 +35,11 @@ import nz.caffe.osgi.launcher.impl.SystemErrorLoggingCallback;
 **/
 public class Main
 {
+
     /**
      * Switch for specifying bundle directory.
     **/
     public static final String BUNDLE_DIR_SWITCH = "-b";
-    /**
-     * The property name used to specify whether the launcher should
-     * install a shutdown hook.
-    **/
-    public static final String SHUTDOWN_HOOK_PROP = "caffe.shutdown.hook";
-    /**
-     * The property name used to specify an URL to the system
-     * property file.
-    **/
-    public static final String SYSTEM_PROPERTIES_PROP = "caffe.system.properties";
-    /**
-     * The default name used for the system properties file.
-    **/
-    public static final String SYSTEM_PROPERTIES_FILE_VALUE = "system.properties";
-    /**
-     * The property name used to specify an URL to the configuration
-     * property file to be used for the created the framework instance.
-    **/
-    public static final String CONFIG_PROPERTIES_PROP = "caffe.config.properties";
-    /**
-     * The default name used for the configuration properties file.
-    **/
-    public static final String CONFIG_PROPERTIES_FILE_VALUE = "config.properties";
-    /**
-     * Name of the configuration directory.
-     */
-    public static final String CONFIG_DIRECTORY = "conf";
 
     /**
      * <p>
@@ -233,318 +191,23 @@ public class Main
             System.exit(0);
         }
 
-        // Load system properties.
-        Main.loadSystemProperties();
+        final Framework fwk = new ConsoleLauncher(new FileSystemCallback(), new SystemErrorLoggingCallback()).launch(bundleDir, cacheDir, true);
 
-        // Read configuration properties.
-        Map<String, String> configProps = Main.loadConfigProperties();
-        // If no configuration properties were found, then create
-        // an empty properties object.
-        if (configProps == null)
+        FrameworkEvent event;
+        do
         {
-            System.err.println("No " + CONFIG_PROPERTIES_FILE_VALUE + " found.");
-            configProps = new HashMap<String, String>();
+            // Start the framework.
+            fwk.start();
+            // Wait for framework to stop to exit the VM.
+            event = fwk.waitForStop(0);
         }
+        // If the framework was updated, then restart it.
+        while (event.getType() == FrameworkEvent.STOPPED_UPDATE);
 
-        // Copy framework properties from the system properties.
-        Main.copySystemProperties(configProps);
+        // Runtime.getRuntime().removeShutdownHook(shutdownHook);
 
-        // If there is a passed in bundle auto-deploy directory, then
-        // that overwrites anything in the config file.
-        if (bundleDir != null)
-        {
-            configProps.put(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY, bundleDir);
-        }
-
-        // If there is a passed in bundle cache directory, then
-        // that overwrites anything in the config file.
-        if (cacheDir != null)
-        {
-            configProps.put(Constants.FRAMEWORK_STORAGE, cacheDir);
-        }
-
-        final AtomicReference<Framework> fwkRef = new AtomicReference<Framework>();
-
-        // If enabled, register a shutdown hook to make sure the framework is
-        // cleanly shutdown when the VM exits.
-        String enableHook = configProps.get(SHUTDOWN_HOOK_PROP);
-        if ((enableHook == null) || !enableHook.equalsIgnoreCase("false"))
-        {
-            Runtime.getRuntime().addShutdownHook(new Thread("caffe Shutdown Hook") {
-                @Override
-                public void run()
-                {
-                    try
-                    {
-                        final Framework fwk = fwkRef.get();
-                        if (fwk != null)
-                        {
-                            fwk.stop();
-                            fwk.waitForStop(0);
-                        }
-                    }
-                    catch (final Exception ex)
-                    {
-                        System.err.println("Error stopping framework: " + ex);
-                    }
-                }
-            });
-        }
-
-        try
-        {
-            // Create an instance of the framework.
-            FrameworkFactory factory = getFrameworkFactory();
-            final Framework fwk = factory.newFramework(configProps);
-            fwkRef.set(fwk);
-            // Initialise the framework, but don't start it yet.
-            fwk.init();
-            // Use the system bundle context to process the auto-deploy
-            // and auto-install/auto-start properties.
-            AutoProcessor.process(configProps, fwk.getBundleContext(), new FileSystemCallback(), new SystemErrorLoggingCallback());
-            FrameworkEvent event;
-            do
-            {
-                // Start the framework.
-                fwk.start();
-                // Wait for framework to stop to exit the VM.
-                event = fwk.waitForStop(0);
-            }
-            // If the framework was updated, then restart it.
-            while (event.getType() == FrameworkEvent.STOPPED_UPDATE);
-            // Otherwise, exit.
-            System.exit(0);
-        }
-        catch (Exception ex)
-        {
-            System.err.println("Could not create framework: " + ex);
-            ex.printStackTrace();
-            System.exit(0);
-        }
+        // Otherwise, exit.
+        System.exit(0);
     }
 
-    /**
-     * Simple method to parse META-INF/services file for framework factory.
-     * Currently, it assumes the first non-commented line is the class name
-     * of the framework factory implementation.
-     * @return The created <tt>FrameworkFactory</tt> instance.
-     * @throws Exception if any errors occur.
-    **/
-    private static FrameworkFactory getFrameworkFactory() throws Exception
-    {
-        URL url = Main.class.getClassLoader().getResource(
-            "META-INF/services/org.osgi.framework.launch.FrameworkFactory");
-        if (url != null)
-        {
-            BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()));
-            try
-            {
-                for (String s = br.readLine(); s != null; s = br.readLine())
-                {
-                    s = s.trim();
-                    // Try to load first non-empty, non-commented line.
-                    if ((s.length() > 0) && (s.charAt(0) != '#'))
-                    {
-                        return (FrameworkFactory) Class.forName(s).newInstance();
-                    }
-                }
-            }
-            finally
-            {
-                if (br != null) br.close();
-            }
-        }
-
-        throw new Exception("Could not find framework factory.");
-    }
-
-    /**
-     * <p>
-     * Loads the properties in the system property file associated with the
-     * framework installation into <tt>System.setProperty()</tt>. These properties
-     * are not directly used by the framework in anyway. By default, the system
-     * property file is located in the <tt>conf/</tt> directory of the current user
-     * directory and is called "<tt>system.properties</tt>".
-     * The precise file from which to load system properties can be set by
-     * initializing the "<tt>caffe.system.properties</tt>" system property to an
-     * arbitrary URL.
-     * </p>
-    **/
-    private static void loadSystemProperties()
-    {
-        // The system properties file is either specified by a system
-        // property or in USER_DIR/conf
-        // Try to load it from one of these places.
-
-        // See if the property URL was specified as a property.
-        URL propURL = null;
-        String custom = System.getProperty(SYSTEM_PROPERTIES_PROP);
-        if (custom != null)
-        {
-            try
-            {
-                propURL = new URL(custom);
-            }
-            catch (MalformedURLException ex)
-            {
-                System.err.print("Main: " + ex);
-                return;
-            }
-        }
-        else
-        {
-            // use the current directory as default.
-            final File confDir = new File(System.getProperty("user.dir"), CONFIG_DIRECTORY);
-
-            try
-            {
-                propURL = new File(confDir, SYSTEM_PROPERTIES_FILE_VALUE).toURL();
-            }
-            catch (MalformedURLException ex)
-            {
-                System.err.print("Main: " + ex);
-                return;
-            }
-        }
-
-        // Read the properties file.
-        Properties props = new Properties();
-        InputStream is = null;
-        try
-        {
-            is = propURL.openConnection().getInputStream();
-            props.load(is);
-            is.close();
-        }
-        catch (FileNotFoundException ex)
-        {
-            // Ignore file not found.
-        }
-        catch (Exception ex)
-        {
-            System.err.println(
-                "Main: Error loading system properties from " + propURL);
-            System.err.println("Main: " + ex);
-            try
-            {
-                if (is != null) is.close();
-            }
-            catch (IOException ex2)
-            {
-                // Nothing we can do.
-            }
-            return;
-        }
-
-        // Perform variable substitution on specified properties.
-        for (Enumeration<?> e = props.propertyNames(); e.hasMoreElements(); )
-        {
-            String name = (String) e.nextElement();
-            System.setProperty(name,
-                Util.substVars(props.getProperty(name), name, null, null));
-        }
-    }
-
-    /**
-     * <p>
-     * Loads the configuration properties in the configuration property file
-     * associated with the framework installation; these properties
-     * are accessible to the framework and to bundles and are intended
-     * for configuration purposes. By default, the configuration property
-     * file is located in the <tt>conf/</tt> directory of the current user
-     * directory and is called "<tt>config.properties</tt>".
-     * The precise file from which to load configuration
-     * properties can be set by initializing the "<tt>caffe.config.properties</tt>"
-     * system property to an arbitrary URL.
-     * </p>
-     * @return A <tt>Properties</tt> instance or <tt>null</tt> if there was an error.
-    **/
-    private static Map<String, String> loadConfigProperties()
-    {
-        // The config properties file is either specified by a system
-        // property or in USER_DIR/conf
-        // Try to load it from one of these places.
-
-        // See if the property URL was specified as a property.
-        URL propURL = null;
-        String custom = System.getProperty(CONFIG_PROPERTIES_PROP);
-        if (custom != null)
-        {
-            try
-            {
-                propURL = new URL(custom);
-            }
-            catch (MalformedURLException ex)
-            {
-                System.err.print("Main: " + ex);
-                return null;
-            }
-        }
-        else
-        {
-            // use the current directory as default.
-            final File confDir = new File(System.getProperty("user.dir"), CONFIG_DIRECTORY);
-
-            try
-            {
-                propURL = new File(confDir, CONFIG_PROPERTIES_FILE_VALUE).toURL();
-            }
-            catch (MalformedURLException ex)
-            {
-                System.err.print("Main: " + ex);
-                return null;
-            }
-        }
-
-        // Read the properties file.
-        Properties props = new Properties();
-        InputStream is = null;
-        try
-        {
-            // Try to load config.properties.
-            is = propURL.openConnection().getInputStream();
-            props.load(is);
-            is.close();
-        }
-        catch (Exception ex)
-        {
-            // Try to close input stream if we have one.
-            try
-            {
-                if (is != null) is.close();
-            }
-            catch (IOException ex2)
-            {
-                // Nothing we can do.
-            }
-
-            return null;
-        }
-
-        // Perform variable substitution for system properties and
-        // convert to dictionary.
-        Map<String, String> map = new HashMap<String, String>();
-        for (Enumeration<?> e = props.propertyNames(); e.hasMoreElements(); )
-        {
-            String name = (String) e.nextElement();
-            map.put(name,
-                Util.substVars(props.getProperty(name), name, null, props));
-        }
-
-        return map;
-    }
-
-    private static void copySystemProperties(Map<String, String> configProps)
-    {
-        for (Enumeration<?> e = System.getProperties().propertyNames();
-             e.hasMoreElements(); )
-        {
-            String key = (String) e.nextElement();
-            if (key.startsWith("caffe.") || key.startsWith("felix.")
-                    || key.startsWith("org.osgi.framework."))
-            {
-                configProps.put(key, System.getProperty(key));
-            }
-        }
-    }
 }

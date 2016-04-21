@@ -24,7 +24,7 @@ import org.osgi.framework.BundleException;
  * Abstraction for accessing the location of bundles. These may not actually be
  * on the file system as files. They could be embedded inside the WAR file.
  */
-public interface BundleCallback
+public interface LoadCallback
 {
 
     /**
@@ -37,13 +37,13 @@ public interface BundleCallback
     List<String> listBundles(final String directory);
 
     /**
-     * Open a stream to the given bundle.
+     * Open a stream to the given path.
      *
-     * @param bundle
-     *            the bundle.
+     * @param path
+     *            the path.
      * @return the input stream - the caller is responsible for closing.
      * @throws BundleException if opening the stream fails
      */
-    InputStream openStream(final String bundle) throws BundleException;
+    InputStream openStream(final String path) throws BundleException;
 
 }

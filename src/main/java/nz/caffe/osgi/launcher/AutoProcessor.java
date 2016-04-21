@@ -43,10 +43,6 @@ public class AutoProcessor
     **/
     public static final String AUTO_DEPLOY_DIR_PROPERTY = "caffe.auto.deploy.dir";
     /**
-     * The default name used for the bundle directory.
-    **/
-    public static final String AUTO_DEPLOY_DIR_VALUE = "bundle";
-    /**
      * The property name used to specify auto-deploy actions.
     **/
     public static final String AUTO_DEPLOY_ACTION_PROPERTY = "caffe.auto.deploy.action";
@@ -87,10 +83,10 @@ public class AutoProcessor
      * @param callback the callback to use to list and precess files from a dir
      * @param loggingCallback
     **/
-    public static void process(final Map<String, String> configMap, BundleContext context, BundleCallback callback, LoggingCallback loggingCallback)
+    public static void process(final Map<String, String> configMap, BundleContext context, String defaultAutoDeployDir, LoadCallback callback, LoggingCallback loggingCallback)
     {
         final Map<String, String> safeConfigMap = (configMap == null) ? new HashMap<String, String>() : configMap;
-        processAutoDeploy(safeConfigMap, context, callback, loggingCallback);
+        processAutoDeploy(safeConfigMap, context, defaultAutoDeployDir, callback, loggingCallback);
         processAutoProperties(safeConfigMap, context, loggingCallback);
     }
 
@@ -100,7 +96,7 @@ public class AutoProcessor
      * specified deploy actions.
      * </p>
      */
-    private static void processAutoDeploy(Map<String, String> configMap, BundleContext context, BundleCallback callback, LoggingCallback loggingCallback)
+    private static void processAutoDeploy(Map<String, String> configMap, BundleContext context, String defaultAutoDeployDir, LoadCallback callback, LoggingCallback loggingCallback)
     {
         // Determine if auto deploy actions to perform.
         String action = configMap.get(AUTO_DEPLOY_ACTION_PROPERTY);
@@ -152,7 +148,7 @@ public class AutoProcessor
 
             // Get the auto deploy directory.
             String autoDir = configMap.get(AUTO_DEPLOY_DIR_PROPERTY);
-            autoDir = (autoDir == null) ? AUTO_DEPLOY_DIR_VALUE : autoDir;
+            autoDir = (autoDir == null) ? defaultAutoDeployDir : autoDir;
             // Look in the specified bundle directory to create a list
             // of all JAR files to install.
 
