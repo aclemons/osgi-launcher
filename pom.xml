@@ -17,150 +17,86 @@
  under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
- <parent>
-    <groupId>org.apache.felix</groupId>
-    <artifactId>felix-parent</artifactId>
-    <version>2.1</version>
-    <relativePath>../pom/pom.xml</relativePath>
-  </parent>
   <modelVersion>4.0.0</modelVersion>
-  <packaging>bundle</packaging>
-  <name>Apache Felix Main</name>
-  <artifactId>org.apache.felix.main</artifactId>
-  <version>5.5.0-SNAPSHOT</version>
-    <scm>
-      <connection>scm:svn:http://svn.apache.org/repos/asf/felix/trunk/main</connection>
-      <developerConnection>scm:svn:https://svn.apache.org/repos/asf/felix/trunk/main</developerConnection>
-      <url>http://svn.apache.org/repos/asf/felix/main</url>
-    </scm>
+  <packaging>jar</packaging>
+  <name>OSGi Launcher</name>
+  <groupId>nz.caffe.osgi</groupId>
+  <artifactId>nz.caffe.osgi.launcher</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <scm>
+    <connection>scm:git:https://github.com/aclemons/osgi-launcher.git</connection>
+    <developerConnection>scm:git:https://github.com/aclemons/osgi-launcher.git</developerConnection>
+    <url>https://github.com/aclemons/osgi-launcher</url>
+  </scm>
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <id>aclemons</id>
+      <name>Andrew Clemons</name>
+      <email>andrew.clemons@gmail.com</email>
+      <roles>
+        <role>developer</role>
+      </roles>
+      <timezone>+12</timezone>
+    </developer>
+  </developers>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+  </properties>
   <dependencies>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>org.apache.felix.framework</artifactId>
-      <version>5.5.0-SNAPSHOT</version>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.core</artifactId>
+      <version>6.0.0</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
-  <properties>
-    <log.level>4</log.level>
-    <dollar>$</dollar>
-    <gogo.runtime.version>0.16.2</gogo.runtime.version>
-    <gogo.shell.version>0.10.0</gogo.shell.version>
-    <gogo.command.version>0.16.0</gogo.command.version>
-    <obr.version>2.0.6</obr.version>
-  </properties>
-  <profiles>
-    <profile>
-      <id>release</id>
-      <properties>
-        <log.level>1</log.level>
-        <dollar>$</dollar>
-      </properties>
-    </profile>
-  </profiles>
   <build>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>1.4.1</version>
+        <executions>
+          <execution>
+            <id>enforce-versions</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requirePluginVersions>
+                  <message>Best Practice is to always define plugin versions!</message>
+                  <banLatest>true</banLatest>
+                  <banRelease>true</banRelease>
+                  <banSnapshots>true</banSnapshots>
+                  <phases>package</phases>
+                </requirePluginVersions>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.5.1</version>
         <configuration>
           <target>1.5</target>
           <source>1.5</source>
         </configuration>
       </plugin>
-
-      <plugin>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-bundle-plugin</artifactId>
-        <version>2.5.0</version>
-        <extensions>true</extensions>
-        <configuration>
-          <instructions>
-            <_donotcopy>(CVS|.svn|config.properties)</_donotcopy>
-            <Main-Class>org.apache.felix.main.Main</Main-Class>
-            <Bundle-SymbolicName>org.apache.felix.main</Bundle-SymbolicName>
-            <Bundle-Name>Apache Felix</Bundle-Name>
-            <Bundle-Description>OSGi R6 framework.</Bundle-Description>
-            <Bundle-Vendor>The Apache Software Foundation</Bundle-Vendor>
-            <Embed-Dependency>*;artifactId=org.apache.felix.framework;inline=true</Embed-Dependency>
-            <Private-Package>org.apache.felix.main.*</Private-Package>
-            <Export-Package>!org.osgi.service.log, !org.osgi.service.obr, org.osgi.*</Export-Package>
-            <Import-Package>!*</Import-Package>
-          </instructions>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>copy</id>
-            <phase>package</phase>
-            <goals>
-              <goal>copy</goal>
-            </goals>
-            <configuration>
-                <artifactItems>
-                  <artifactItem>
-                     <groupId>${project.groupId}</groupId>
-                     <artifactId>org.apache.felix.gogo.runtime</artifactId>
-                     <version>${gogo.runtime.version}</version>
-                     <type>jar</type>
-                     <overWrite>true</overWrite>
-                     <outputDirectory>${project.basedir}/bundle</outputDirectory>
-                   </artifactItem>
-                   <artifactItem>
-                     <groupId>${project.groupId}</groupId>
-                     <artifactId>org.apache.felix.gogo.shell</artifactId>
-                     <version>${gogo.shell.version}</version>
-                     <type>jar</type>
-                     <overWrite>true</overWrite>
-                     <outputDirectory>${project.basedir}/bundle</outputDirectory>
-                   </artifactItem>
-                   <artifactItem>
-                     <groupId>${project.groupId}</groupId>
-                     <artifactId>org.apache.felix.gogo.command</artifactId>
-                     <version>${gogo.command.version}</version>
-                     <type>jar</type>
-                     <overWrite>true</overWrite>
-                     <outputDirectory>${project.basedir}/bundle</outputDirectory>
-                   </artifactItem>
-                   <artifactItem>
-                     <groupId>${project.groupId}</groupId>
-                     <artifactId>org.apache.felix.bundlerepository</artifactId>
-                     <version>${obr.version}</version>
-                     <type>jar</type>
-                     <overWrite>true</overWrite>
-                     <outputDirectory>${project.basedir}/bundle</outputDirectory>
-                   </artifactItem>
-                 </artifactItems>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <configuration>
-              <tasks>
-                <delete dir="${basedir}/bin" />
-                <mkdir dir="${basedir}/bin" />
-                <delete dir="${basedir}/conf" />
-                <mkdir dir="${basedir}/conf" />
-                <copy file="${basedir}/target/org.apache.felix.main-${project.version}.jar" tofile="${basedir}/bin/felix.jar" />
-                <copy file="${basedir}/target/classes/config.properties" todir="${basedir}/conf" />
-              </tasks>
-            </configuration>
-            <goals>
-              <goal>run</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
+        <version>3.0.0</version>
         <executions>
           <execution>
             <id>attach-sources</id>
@@ -171,18 +107,62 @@
         </executions>
       </plugin>
       <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.10.3</version>
+        <configuration>
+          <failOnError>false</failOnError>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.19.1</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.6</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>3.0.0</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <version>2.8.2</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>2.7</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>3.5.1</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+        <version>2.5.2</version>
+      </plugin>
+      <plugin>
+      <groupId>org.codehaus.mojo</groupId>
+        <artifactId>animal-sniffer-maven-plugin</artifactId>
+        <version>1.15</version>
+        <executions>
+          <execution>
+            <id>check-java17</id>
+            <phase>test</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
             <configuration>
-                <failOnError>false</failOnError>
+              <signature>
+                <groupId>org.codehaus.mojo.signature</groupId>
+                <artifactId>java15</artifactId>
+                <version>1.0</version>
+              </signature>
             </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-        <filtering>true</filtering>
-      </resource>
-    </resources> 
   </build>
 </project>
