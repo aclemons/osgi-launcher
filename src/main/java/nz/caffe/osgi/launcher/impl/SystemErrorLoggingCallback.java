@@ -18,20 +18,17 @@ package nz.caffe.osgi.launcher.impl;
 import nz.caffe.osgi.launcher.LoggingCallback;
 
 /**
- * Default implementation for the command line launcher. It uses
- * stderr to print its error messages.
+ * Default implementation for the command line launcher. It uses stderr to print
+ * its error messages.
  */
-public final class SystemErrorLoggingCallback implements LoggingCallback
-{
+public final class SystemErrorLoggingCallback implements LoggingCallback {
 
-    public void error(final String message, final Throwable ex)
-    {
+    public void error(final String message, final Throwable ex) {
         System.err.println(message + " : " + ex + ((ex.getCause() != null) ? " - " + ex.getCause() : ""));
         ex.printStackTrace();
     }
 
-    public void warn(final String message, final Throwable ex)
-    {
+    public void warn(final String message, final Throwable ex) {
         System.err.println(message + " : " + ex + ((ex.getCause() != null) ? " - " + ex.getCause() : ""));
     }
 

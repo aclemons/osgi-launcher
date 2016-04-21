@@ -30,23 +30,18 @@ import nz.caffe.osgi.launcher.LoadCallback;
 /**
  * Allow loading bundles from simple directories on the file system.
  */
-public final class FileSystemCallback implements LoadCallback
-{
+public final class FileSystemCallback implements LoadCallback {
 
-    public List<String> listBundles(final String directory)
-    {
+    public List<String> listBundles(final String directory) {
         final File[] files = new File(directory).listFiles();
 
         final List<String> jarList = new ArrayList<String>();
 
-        if (files != null)
-        {
+        if (files != null) {
             Arrays.sort(files);
 
-            for (final File file : files)
-            {
-                if (file.getName().endsWith(".jar"))
-                {
+            for (final File file : files) {
+                if (file.getName().endsWith(".jar")) {
                     jarList.add(file.getAbsolutePath());
                 }
             }
@@ -55,13 +50,10 @@ public final class FileSystemCallback implements LoadCallback
         return jarList;
     }
 
-    public InputStream openStream(final String bundle) throws BundleException
-    {
-        try
-        {
+    public InputStream openStream(final String bundle) throws BundleException {
+        try {
             return new FileInputStream(new File(bundle));
-        } catch (FileNotFoundException e)
-        {
+        } catch (FileNotFoundException e) {
             throw new BundleException("Unable to open stream for " + bundle, BundleException.UNSPECIFIED, e);
         }
     }

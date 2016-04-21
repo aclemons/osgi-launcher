@@ -30,33 +30,27 @@ import nz.caffe.osgi.launcher.LoadCallback;
 /**
  * Allow loading bundles from inside a WAR file.
  */
-public class ServletContextCallback implements LoadCallback
-{
+public class ServletContextCallback implements LoadCallback {
 
     private final ServletContext servletContext;
 
     /**
      * @param servletContext
      */
-    public ServletContextCallback(final ServletContext servletContext)
-    {
+    public ServletContextCallback(final ServletContext servletContext) {
         super();
         this.servletContext = servletContext;
     }
 
-    public List<String> listBundles(final String directory)
-    {
+    public List<String> listBundles(final String directory) {
 
         final Set<String> files = servletContext.getResourcePaths(directory);
 
         final List<String> jarList = new ArrayList<String>();
 
-        if (files != null)
-        {
-            for (String file : files)
-            {
-                if (file.endsWith(".jar"))
-                {
+        if (files != null) {
+            for (String file : files) {
+                if (file.endsWith(".jar")) {
                     jarList.add(file);
                 }
             }
@@ -68,8 +62,7 @@ public class ServletContextCallback implements LoadCallback
 
     }
 
-    public InputStream openStream(final String bundle) throws BundleException
-    {
+    public InputStream openStream(final String bundle) throws BundleException {
         return this.servletContext.getResourceAsStream(bundle);
     }
 

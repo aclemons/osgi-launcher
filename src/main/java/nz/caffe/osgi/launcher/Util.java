@@ -24,45 +24,44 @@ import java.util.Properties;
 
 /**
  */
-public class Util
-{
+public class Util {
     private static final String DELIM_START = "${";
-    private static final String DELIM_STOP  = "}";
+    private static final String DELIM_STOP = "}";
 
     /**
      * <p>
-     * This method performs property variable substitution on the
-     * specified value. If the specified value contains the syntax
-     * <tt>${&lt;prop-name&gt;}</tt>, where <tt>&lt;prop-name&gt;</tt>
-     * refers to either a configuration property or a system property,
-     * then the corresponding property value is substituted for the variable
-     * placeholder. Multiple variable placeholders may exist in the
-     * specified value as well as nested variable placeholders, which
-     * are substituted from inner most to outer most. Configuration
-     * properties override system properties.
+     * This method performs property variable substitution on the specified
+     * value. If the specified value contains the syntax
+     * <tt>${&lt;prop-name&gt;}</tt>, where <tt>&lt;prop-name&gt;</tt> refers to
+     * either a configuration property or a system property, then the
+     * corresponding property value is substituted for the variable placeholder.
+     * Multiple variable placeholders may exist in the specified value as well
+     * as nested variable placeholders, which are substituted from inner most to
+     * outer most. Configuration properties override system properties.
      * </p>
-     * @param val The string on which to perform property substitution.
-     * @param currentKey The key of the property being evaluated used to
-     *        detect cycles.
-     * @param cycleMap Map of variable references used to detect nested cycles.
-     * @param configProps Set of configuration properties.
-     * @return The value of the specified string after system property substitution.
-     * @throws IllegalArgumentException If there was a syntax error in the
-     *         property placeholder syntax or a recursive variable reference.
-    **/
-    public static String substVars(String val, String currentKey,
-        final Map<String, String> cycleMap, Properties configProps)
-        throws IllegalArgumentException
-    {
+     *
+     * @param val
+     *            The string on which to perform property substitution.
+     * @param currentKey
+     *            The key of the property being evaluated used to detect cycles.
+     * @param cycleMap
+     *            Map of variable references used to detect nested cycles.
+     * @param configProps
+     *            Set of configuration properties.
+     * @return The value of the specified string after system property
+     *         substitution.
+     * @throws IllegalArgumentException
+     *             If there was a syntax error in the property placeholder
+     *             syntax or a recursive variable reference.
+     **/
+    public static String substVars(String val, String currentKey, final Map<String, String> cycleMap,
+            Properties configProps) throws IllegalArgumentException {
         // If there is currently no cycle map, then create
         // one for detecting cycles for this invocation.
         final Map<String, String> cycles;
-        if (cycleMap == null)
-        {
+        if (cycleMap == null) {
             cycles = new HashMap<String, String>();
-        }
-        else
-        {
+        } else {
             cycles = cycleMap;
         }
 
@@ -78,13 +77,11 @@ public class Util
         int stopDelim = -1;
         int startDelim = -1;
 
-        do
-        {
+        do {
             stopDelim = val.indexOf(DELIM_STOP, stopDelim + 1);
             // If there is no stopping delimiter, then just return
             // the value since there is no variable declared.
-            if (stopDelim < 0)
-            {
+            if (stopDelim < 0) {
                 return val;
             }
             // Try to find the matching start delimiter by
@@ -93,46 +90,34 @@ public class Util
             startDelim = val.indexOf(DELIM_START);
             // If there is no starting delimiter, then just return
             // the value since there is no variable declared.
-            if (startDelim < 0)
-            {
+            if (startDelim < 0) {
                 return val;
             }
-            while (stopDelim >= 0)
-            {
+            while (stopDelim >= 0) {
                 int idx = val.indexOf(DELIM_START, startDelim + DELIM_START.length());
-                if ((idx < 0) || (idx > stopDelim))
-                {
+                if ((idx < 0) || (idx > stopDelim)) {
                     break;
-                }
-                else if (idx < stopDelim)
-                {
+                } else if (idx < stopDelim) {
                     startDelim = idx;
                 }
             }
-        }
-        while ((startDelim > stopDelim) && (stopDelim >= 0));
+        } while ((startDelim > stopDelim) && (stopDelim >= 0));
 
         // At this point, we have found a variable placeholder so
         // we must perform a variable substitution on it.
         // Using the start and stop delimiter indices, extract
         // the first, deepest nested variable placeholder.
-        String variable =
-            val.substring(startDelim + DELIM_START.length(), stopDelim);
+        String variable = val.substring(startDelim + DELIM_START.length(), stopDelim);
 
         // Verify that this is not a recursive variable reference.
-        if (cycles.get(variable) != null)
-        {
-            throw new IllegalArgumentException(
-                "recursive variable reference: " + variable);
+        if (cycles.get(variable) != null) {
+            throw new IllegalArgumentException("recursive variable reference: " + variable);
         }
 
         // Get the value of the deepest nested variable placeholder.
         // Try to configuration properties first.
-        String substValue = (configProps != null)
-            ? configProps.getProperty(variable, null)
-            : null;
-        if (substValue == null)
-        {
+        String substValue = (configProps != null) ? configProps.getProperty(variable, null) : null;
+        if (substValue == null) {
             // Ignore unknown property values.
             substValue = System.getProperty(variable, "");
         }
@@ -145,9 +130,8 @@ public class Util
         // Append the leading characters, the substituted value of
         // the variable, and the trailing characters to get the new
         // value.
-        final String val2 = val.substring(0, startDelim)
-            + substValue
-            + val.substring(stopDelim + DELIM_STOP.length(), val.length());
+        final String val2 = val.substring(0, startDelim) + substValue
+                + val.substring(stopDelim + DELIM_STOP.length(), val.length());
 
         // Now perform substitution again, since there could still
         // be substitutions to make.

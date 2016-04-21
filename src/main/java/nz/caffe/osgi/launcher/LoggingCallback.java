@@ -22,8 +22,7 @@ package nz.caffe.osgi.launcher;
  * either use SLF4J is that is what the WAR is using or in worst case logging
  * through the ServletContext object.
  */
-public interface LoggingCallback
-{
+public interface LoggingCallback {
 
     void error(final String message, final Throwable e);
 

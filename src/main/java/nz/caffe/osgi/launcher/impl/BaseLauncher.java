@@ -39,37 +39,35 @@ import nz.caffe.osgi.launcher.LoggingCallback;
 
 /**
  * <p>
- * This class is the default way to instantiate and execute the framework. It is not
- * intended to be the only way to instantiate and execute the framework; rather, it is
- * one example of how to do so. When embedding the framework in a host application,
- * this class can serve as a simple guide of how to do so. It may even be
- * worthwhile to reuse some of its property handling capabilities.
+ * This class is the default way to instantiate and execute the framework. It is
+ * not intended to be the only way to instantiate and execute the framework;
+ * rather, it is one example of how to do so. When embedding the framework in a
+ * host application, this class can serve as a simple guide of how to do so. It
+ * may even be worthwhile to reuse some of its property handling capabilities.
  * </p>
-**/
-public abstract class BaseLauncher
-{
+ **/
+public abstract class BaseLauncher {
     /**
-     * The property name used to specify whether the launcher should
-     * install a shutdown hook.
-    **/
+     * The property name used to specify whether the launcher should install a
+     * shutdown hook.
+     **/
     public static final String SHUTDOWN_HOOK_PROP = "caffe.shutdown.hook";
     /**
-     * The property name used to specify an URL to the system
-     * property file.
-    **/
+     * The property name used to specify an URL to the system property file.
+     **/
     public static final String SYSTEM_PROPERTIES_PROP = "caffe.system.properties";
     /**
      * The default name used for the system properties file.
-    **/
+     **/
     public static final String SYSTEM_PROPERTIES_FILE_VALUE = "system.properties";
     /**
-     * The property name used to specify an URL to the configuration
-     * property file to be used for the created the framework instance.
-    **/
+     * The property name used to specify an URL to the configuration property
+     * file to be used for the created the framework instance.
+     **/
     public static final String CONFIG_PROPERTIES_PROP = "caffe.config.properties";
     /**
      * The default name used for the configuration properties file.
-    **/
+     **/
     public static final String CONFIG_PROPERTIES_FILE_VALUE = "config.properties";
     /**
      * Name of the configuration directory.
@@ -84,8 +82,7 @@ public abstract class BaseLauncher
      * @param loadCallback
      * @param loggingCallback
      */
-    public BaseLauncher(final LoadCallback loadCallback, final LoggingCallback loggingCallback)
-    {
+    public BaseLauncher(final LoadCallback loadCallback, final LoggingCallback loggingCallback) {
         super();
         this.loadCallback = loadCallback;
         this.loggingCallback = loggingCallback;
@@ -96,8 +93,7 @@ public abstract class BaseLauncher
      * @param cacheDir
      * @param useSystemExit
      */
-    public Framework launch(final String bundleDir, final String cacheDir, final boolean useSystemExit)
-    {
+    public Framework launch(final String bundleDir, final String cacheDir, final boolean useSystemExit) {
         // Load system properties.
         loadSystemProperties();
 
@@ -105,8 +101,7 @@ public abstract class BaseLauncher
         Map<String, String> configProps = loadConfigProperties();
         // If no configuration properties were found, then create
         // an empty properties object.
-        if (configProps == null)
-        {
+        if (configProps == null) {
             System.err.println("No " + CONFIG_PROPERTIES_FILE_VALUE + " found.");
             configProps = new HashMap<String, String>();
         }
@@ -116,15 +111,13 @@ public abstract class BaseLauncher
 
         // If there is a passed in bundle auto-deploy directory, then
         // that overwrites anything in the config file.
-        if (bundleDir != null)
-        {
+        if (bundleDir != null) {
             configProps.put(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY, bundleDir);
         }
 
         // If there is a passed in bundle cache directory, then
         // that overwrites anything in the config file.
-        if (cacheDir != null)
-        {
+        if (cacheDir != null) {
             configProps.put(Constants.FRAMEWORK_STORAGE, cacheDir);
         }
 
@@ -134,23 +127,17 @@ public abstract class BaseLauncher
         // cleanly shutdown when the VM exits.
         String enableHook = configProps.get(SHUTDOWN_HOOK_PROP);
         Thread shutdownHook = null;
-        if ((enableHook == null) || !enableHook.equalsIgnoreCase("false"))
-        {
+        if ((enableHook == null) || !enableHook.equalsIgnoreCase("false")) {
             shutdownHook = new Thread("Framework Shutdown Hook") {
                 @Override
-                public void run()
-                {
-                    try
-                    {
+                public void run() {
+                    try {
                         final Framework fwk = fwkRef.get();
-                        if (fwk != null)
-                        {
+                        if (fwk != null) {
                             fwk.stop();
                             fwk.waitForStop(0);
                         }
-                    }
-                    catch (final Exception ex)
-                    {
+                    } catch (final Exception ex) {
                         System.err.println("Error stopping framework: " + ex);
                     }
                 }
@@ -158,8 +145,7 @@ public abstract class BaseLauncher
             Runtime.getRuntime().addShutdownHook(shutdownHook);
         }
 
-        try
-        {
+        try {
             // Create an instance of the framework.
             FrameworkFactory factory = getFrameworkFactory();
             final Framework fwk = factory.newFramework(configProps);
@@ -168,17 +154,15 @@ public abstract class BaseLauncher
             fwk.init();
             // Use the system bundle context to process the auto-deploy
             // and auto-install/auto-start properties.
-            AutoProcessor.process(configProps, fwk.getBundleContext(), getDefaultAutoDeployDirectory(), this.loadCallback, this.loggingCallback);
+            AutoProcessor.process(configProps, fwk.getBundleContext(), getDefaultAutoDeployDirectory(),
+                    this.loadCallback, this.loggingCallback);
 
             return fwk;
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             System.err.println("Could not create framework: " + ex);
             ex.printStackTrace();
 
-            if (useSystemExit)
-            {
+            if (useSystemExit) {
                 System.exit(0);
             }
 
@@ -188,32 +172,27 @@ public abstract class BaseLauncher
 
     /**
      * Simple method to parse META-INF/services file for framework factory.
-     * Currently, it assumes the first non-commented line is the class name
-     * of the framework factory implementation.
+     * Currently, it assumes the first non-commented line is the class name of
+     * the framework factory implementation.
+     *
      * @return The created <tt>FrameworkFactory</tt> instance.
-     * @throws Exception if any errors occur.
-    **/
-    private static FrameworkFactory getFrameworkFactory() throws Exception
-    {
-        URL url = BaseLauncher.class.getClassLoader().getResource(
-            "META-INF/services/org.osgi.framework.launch.FrameworkFactory");
-        if (url != null)
-        {
+     * @throws Exception
+     *             if any errors occur.
+     **/
+    private static FrameworkFactory getFrameworkFactory() throws Exception {
+        URL url = BaseLauncher.class.getClassLoader()
+                .getResource("META-INF/services/org.osgi.framework.launch.FrameworkFactory");
+        if (url != null) {
             BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()));
-            try
-            {
-                for (String s = br.readLine(); s != null; s = br.readLine())
-                {
+            try {
+                for (String s = br.readLine(); s != null; s = br.readLine()) {
                     s = s.trim();
                     // Try to load first non-empty, non-commented line.
-                    if ((s.length() > 0) && (s.charAt(0) != '#'))
-                    {
+                    if ((s.length() > 0) && (s.charAt(0) != '#')) {
                         return (FrameworkFactory) Class.forName(s).newInstance();
                     }
                 }
-            }
-            finally
-            {
+            } finally {
                 closeQuietly(br);
             }
         }
@@ -228,25 +207,22 @@ public abstract class BaseLauncher
 
     /**
      * Hook for subclasses to load config properties.
+     *
      * @return the loaded config properties
      */
     protected abstract Map<String, String> loadConfigProperties();
 
     /**
      * The default value for the auto-deploy directory when none is specified.
+     *
      * @return
      */
     protected abstract String getDefaultAutoDeployDirectory();
 
-    private static void copySystemProperties(Map<String, String> configProps)
-    {
-        for (Enumeration<?> e = System.getProperties().propertyNames();
-             e.hasMoreElements(); )
-        {
+    private static void copySystemProperties(Map<String, String> configProps) {
+        for (Enumeration<?> e = System.getProperties().propertyNames(); e.hasMoreElements();) {
             String key = (String) e.nextElement();
-            if (key.startsWith("caffe.") || key.startsWith("felix.")
-                    || key.startsWith("org.osgi.framework."))
-            {
+            if (key.startsWith("caffe.") || key.startsWith("felix.") || key.startsWith("org.osgi.framework.")) {
                 configProps.put(key, System.getProperty(key));
             }
         }

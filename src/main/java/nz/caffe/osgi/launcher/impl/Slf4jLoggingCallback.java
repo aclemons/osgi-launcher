@@ -24,18 +24,15 @@ import nz.caffe.osgi.launcher.LoggingCallback;
  * Default implementation for the command line launcher. It uses stderr to print
  * its error messages.
  */
-public final class Slf4jLoggingCallback implements LoggingCallback
-{
+public final class Slf4jLoggingCallback implements LoggingCallback {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public void error(final String message, final Throwable ex)
-    {
+    public void error(final String message, final Throwable ex) {
         this.logger.error(message, ex);
     }
 
-    public void warn(final String message, final Throwable ex)
-    {
+    public void warn(final String message, final Throwable ex) {
         this.logger.warn(message, ex);
     }
 

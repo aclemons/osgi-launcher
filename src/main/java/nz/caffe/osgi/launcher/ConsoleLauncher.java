@@ -33,53 +33,50 @@ import nz.caffe.osgi.launcher.impl.BaseLauncher;
 
 /**
  * <p>
- * This class is the default way to instantiate and execute the framework. It is not
- * intended to be the only way to instantiate and execute the framework; rather, it is
- * one example of how to do so. When embedding the framework in a host application,
- * this class can serve as a simple guide of how to do so. It may even be
- * worthwhile to reuse some of its property handling capabilities.
+ * This class is the default way to instantiate and execute the framework. It is
+ * not intended to be the only way to instantiate and execute the framework;
+ * rather, it is one example of how to do so. When embedding the framework in a
+ * host application, this class can serve as a simple guide of how to do so. It
+ * may even be worthwhile to reuse some of its property handling capabilities.
  * </p>
-**/
-public class ConsoleLauncher extends BaseLauncher
-{
+ **/
+public class ConsoleLauncher extends BaseLauncher {
 
     /**
      * The default name used for the bundle directory.
-    **/
+     **/
     public static final String AUTO_DEPLOY_DIR_VALUE = "bundle";
 
     /**
      * @param loadCallback
      * @param loggingCallback
      */
-    public ConsoleLauncher(final LoadCallback loadCallback, final LoggingCallback loggingCallback)
-    {
+    public ConsoleLauncher(final LoadCallback loadCallback, final LoggingCallback loggingCallback) {
         super(loadCallback, loggingCallback);
     }
 
     @Override
-    protected String getDefaultAutoDeployDirectory()
-    {
+    protected String getDefaultAutoDeployDirectory() {
         return AUTO_DEPLOY_DIR_VALUE;
     }
 
     /**
      * <p>
      * Loads the configuration properties in the configuration property file
-     * associated with the framework installation; these properties
-     * are accessible to the framework and to bundles and are intended
-     * for configuration purposes. By default, the configuration property
-     * file is located in the <tt>conf/</tt> directory of the current user
-     * directory and is called "<tt>config.properties</tt>".
-     * The precise file from which to load configuration
-     * properties can be set by initialising the "<tt>caffe.config.properties</tt>"
-     * system property to an arbitrary URL.
+     * associated with the framework installation; these properties are
+     * accessible to the framework and to bundles and are intended for
+     * configuration purposes. By default, the configuration property file is
+     * located in the <tt>conf/</tt> directory of the current user directory and
+     * is called "<tt>config.properties</tt>". The precise file from which to
+     * load configuration properties can be set by initialising the
+     * "<tt>caffe.config.properties</tt>" system property to an arbitrary URL.
      * </p>
-     * @return A <tt>Properties</tt> instance or <tt>null</tt> if there was an error.
-    **/
+     *
+     * @return A <tt>Properties</tt> instance or <tt>null</tt> if there was an
+     *         error.
+     **/
     @Override
-    protected Map<String, String> loadConfigProperties()
-    {
+    protected Map<String, String> loadConfigProperties() {
         // The config properties file is either specified by a system
         // property or in USER_DIR/conf
         // Try to load it from one of these places.
@@ -87,29 +84,20 @@ public class ConsoleLauncher extends BaseLauncher
         // See if the property URL was specified as a property.
         URL propURL = null;
         String custom = System.getProperty(CONFIG_PROPERTIES_PROP);
-        if (custom != null)
-        {
-            try
-            {
+        if (custom != null) {
+            try {
                 propURL = new URL(custom);
-            }
-            catch (MalformedURLException ex)
-            {
+            } catch (MalformedURLException ex) {
                 System.err.print("Main: " + ex);
                 return null;
             }
-        }
-        else
-        {
+        } else {
             // use the current directory as default.
             final File confDir = new File(System.getProperty("user.dir"), CONFIG_DIRECTORY);
 
-            try
-            {
+            try {
                 propURL = new File(confDir, CONFIG_PROPERTIES_FILE_VALUE).toURL();
-            }
-            catch (MalformedURLException ex)
-            {
+            } catch (MalformedURLException ex) {
                 System.err.print("Main: " + ex);
                 return null;
             }
@@ -118,22 +106,17 @@ public class ConsoleLauncher extends BaseLauncher
         // Read the properties file.
         Properties props = new Properties();
         InputStream is = null;
-        try
-        {
+        try {
             // Try to load config.properties.
             is = propURL.openConnection().getInputStream();
             props.load(is);
             is.close();
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             // Try to close input stream if we have one.
-            try
-            {
-                if (is != null) is.close();
-            }
-            catch (IOException ex2)
-            {
+            try {
+                if (is != null)
+                    is.close();
+            } catch (IOException ex2) {
                 // Nothing we can do.
             }
 
@@ -143,11 +126,9 @@ public class ConsoleLauncher extends BaseLauncher
         // Perform variable substitution for system properties and
         // convert to dictionary.
         Map<String, String> map = new HashMap<String, String>();
-        for (Enumeration<?> e = props.propertyNames(); e.hasMoreElements(); )
-        {
+        for (Enumeration<?> e = props.propertyNames(); e.hasMoreElements();) {
             String name = (String) e.nextElement();
-            map.put(name,
-                Util.substVars(props.getProperty(name), name, null, props));
+            map.put(name, Util.substVars(props.getProperty(name), name, null, props));
         }
 
         return map;
@@ -156,18 +137,17 @@ public class ConsoleLauncher extends BaseLauncher
     /**
      * <p>
      * Loads the properties in the system property file associated with the
-     * framework installation into <tt>System.setProperty()</tt>. These properties
-     * are not directly used by the framework in anyway. By default, the system
-     * property file is located in the <tt>conf/</tt> directory of the current user
-     * directory and is called "<tt>system.properties</tt>".
+     * framework installation into <tt>System.setProperty()</tt>. These
+     * properties are not directly used by the framework in anyway. By default,
+     * the system property file is located in the <tt>conf/</tt> directory of
+     * the current user directory and is called "<tt>system.properties</tt>".
      * The precise file from which to load system properties can be set by
      * initializing the "<tt>caffe.system.properties</tt>" system property to an
      * arbitrary URL.
      * </p>
-    **/
+     **/
     @Override
-    protected void loadSystemProperties()
-    {
+    protected void loadSystemProperties() {
         // The system properties file is either specified by a system
         // property or in USER_DIR/conf
         // Try to load it from one of these places.
@@ -175,29 +155,20 @@ public class ConsoleLauncher extends BaseLauncher
         // See if the property URL was specified as a property.
         URL propURL = null;
         String custom = System.getProperty(BaseLauncher.SYSTEM_PROPERTIES_PROP);
-        if (custom != null)
-        {
-            try
-            {
+        if (custom != null) {
+            try {
                 propURL = new URL(custom);
-            }
-            catch (MalformedURLException ex)
-            {
+            } catch (MalformedURLException ex) {
                 System.err.print("Main: " + ex);
                 return;
             }
-        }
-        else
-        {
+        } else {
             // use the current directory as default.
             final File confDir = new File(System.getProperty("user.dir"), BaseLauncher.CONFIG_DIRECTORY);
 
-            try
-            {
+            try {
                 propURL = new File(confDir, BaseLauncher.SYSTEM_PROPERTIES_FILE_VALUE).toURL();
-            }
-            catch (MalformedURLException ex)
-            {
+            } catch (MalformedURLException ex) {
                 System.err.print("Main: " + ex);
                 return;
             }
@@ -206,38 +177,28 @@ public class ConsoleLauncher extends BaseLauncher
         // Read the properties file.
         Properties props = new Properties();
         InputStream is = null;
-        try
-        {
+        try {
             is = propURL.openConnection().getInputStream();
             props.load(is);
             is.close();
-        }
-        catch (FileNotFoundException ex)
-        {
+        } catch (FileNotFoundException ex) {
             // Ignore file not found.
-        }
-        catch (Exception ex)
-        {
-            System.err.println(
-                "Main: Error loading system properties from " + propURL);
+        } catch (Exception ex) {
+            System.err.println("Main: Error loading system properties from " + propURL);
             System.err.println("Main: " + ex);
-            try
-            {
-                if (is != null) is.close();
-            }
-            catch (IOException ex2)
-            {
+            try {
+                if (is != null)
+                    is.close();
+            } catch (IOException ex2) {
                 // Nothing we can do.
             }
             return;
         }
 
         // Perform variable substitution on specified properties.
-        for (Enumeration<?> e = props.propertyNames(); e.hasMoreElements(); )
-        {
+        for (Enumeration<?> e = props.propertyNames(); e.hasMoreElements();) {
             String name = (String) e.nextElement();
-            System.setProperty(name,
-                Util.substVars(props.getProperty(name), name, null, null));
+            System.setProperty(name, Util.substVars(props.getProperty(name), name, null, null));
         }
     }
 

@@ -33,8 +33,7 @@ import org.slf4j.LoggerFactory;
 /**
  * This starts the framework when deploying inside a WAR file.
  */
-public class FrameworkLoaderListener implements ServletContextListener
-{
+public class FrameworkLoaderListener implements ServletContextListener {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -54,75 +53,57 @@ public class FrameworkLoaderListener implements ServletContextListener
 
     private Future<?> future;
 
-    public void contextDestroyed(final ServletContextEvent sce)
-    {
+    public void contextDestroyed(final ServletContextEvent sce) {
         sce.getServletContext().log("Stopping OSGi Framework");
 
-        if (this.pool != null)
-        {
+        if (this.pool != null) {
             this.pool.shutdown();
         }
 
-        try
-        {
-            if (this.framework != null)
-            {
+        try {
+            if (this.framework != null) {
                 this.framework.stop();
                 this.framework.waitForStop(0);
             }
-        } catch (final Exception e)
-        {
+        } catch (final Exception e) {
             sce.getServletContext().log("Framework shutdown failed", e);
-        } finally
-        {
+        } finally {
             sce.getServletContext().removeAttribute(FRAMEWORK_ATTRIBUTE);
         }
 
-        if (this.future != null)
-        {
-            try
-            {
+        if (this.future != null) {
+            try {
                 this.future.get();
-            } catch (InterruptedException e)
-            {
+            } catch (InterruptedException e) {
                 this.logger.warn("Interrupted waiting for framework to shutdown", e);
-            } catch (ExecutionException e)
-            {
+            } catch (ExecutionException e) {
                 // ignored
             }
         }
 
-        if (this.shutdownHook != null)
-        {
+        if (this.shutdownHook != null) {
             Runtime.getRuntime().removeShutdownHook(shutdownHook);
         }
     }
 
-    public void contextInitialized(final ServletContextEvent sce)
-    {
+    public void contextInitialized(final ServletContextEvent sce) {
         final Framework fwk = new WarLauncher(sce.getServletContext()).launch(null, null, false);
 
-        try
-        {
+        try {
             fwk.start();
-        } catch (BundleException e)
-        {
+        } catch (BundleException e) {
             throw new IllegalStateException(e);
         }
 
         this.framework = fwk;
 
-        final Callable<Object> worker = new Callable<Object>()
-        {
+        final Callable<Object> worker = new Callable<Object>() {
 
-            public Object call() throws Exception
-            {
+            public Object call() throws Exception {
                 boolean first = true;
                 FrameworkEvent event;
-                do
-                {
-                    if (!first)
-                    {
+                do {
+                    if (!first) {
                         // Start the framework.
                         fwk.start();
                     }

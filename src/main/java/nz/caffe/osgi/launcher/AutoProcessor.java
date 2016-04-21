@@ -36,55 +36,58 @@ import org.osgi.service.startlevel.StartLevel;
 
 /**
  */
-public class AutoProcessor
-{
+public class AutoProcessor {
     /**
      * The property name used for the bundle directory.
-    **/
+     **/
     public static final String AUTO_DEPLOY_DIR_PROPERTY = "caffe.auto.deploy.dir";
     /**
      * The property name used to specify auto-deploy actions.
-    **/
+     **/
     public static final String AUTO_DEPLOY_ACTION_PROPERTY = "caffe.auto.deploy.action";
     /**
      * The property name used to specify auto-deploy start level.
-    **/
+     **/
     public static final String AUTO_DEPLOY_STARTLEVEL_PROPERTY = "caffe.auto.deploy.startlevel";
     /**
      * The name used for the auto-deploy install action.
-    **/
+     **/
     public static final String AUTO_DEPLOY_INSTALL_VALUE = "install";
     /**
      * The name used for the auto-deploy start action.
-    **/
+     **/
     public static final String AUTO_DEPLOY_START_VALUE = "start";
     /**
      * The name used for the auto-deploy update action.
-    **/
+     **/
     public static final String AUTO_DEPLOY_UPDATE_VALUE = "update";
     /**
      * The name used for the auto-deploy uninstall action.
-    **/
+     **/
     public static final String AUTO_DEPLOY_UNINSTALL_VALUE = "uninstall";
     /**
      * The property name prefix for the launcher's auto-install property.
-    **/
+     **/
     public static final String AUTO_INSTALL_PROP = "caffe.auto.install";
     /**
      * The property name prefix for the launcher's auto-start property.
-    **/
+     **/
     public static final String AUTO_START_PROP = "caffe.auto.start";
 
     /**
-     * Used to instigate auto-deploy directory process and auto-install/auto-start
-     * configuration property processing during.
-     * @param configMap Map of configuration properties.
-     * @param context The system bundle context.
-     * @param callback the callback to use to list and precess files from a dir
+     * Used to instigate auto-deploy directory process and
+     * auto-install/auto-start configuration property processing during.
+     *
+     * @param configMap
+     *            Map of configuration properties.
+     * @param context
+     *            The system bundle context.
+     * @param callback
+     *            the callback to use to list and precess files from a dir
      * @param loggingCallback
-    **/
-    public static void process(final Map<String, String> configMap, BundleContext context, String defaultAutoDeployDir, LoadCallback callback, LoggingCallback loggingCallback)
-    {
+     **/
+    public static void process(final Map<String, String> configMap, BundleContext context, String defaultAutoDeployDir,
+            LoadCallback callback, LoggingCallback loggingCallback) {
         final Map<String, String> safeConfigMap = (configMap == null) ? new HashMap<String, String>() : configMap;
         processAutoDeploy(safeConfigMap, context, defaultAutoDeployDir, callback, loggingCallback);
         processAutoProperties(safeConfigMap, context, loggingCallback);
@@ -92,48 +95,38 @@ public class AutoProcessor
 
     /**
      * <p>
-     * Processes bundles in the auto-deploy directory, performing the
-     * specified deploy actions.
+     * Processes bundles in the auto-deploy directory, performing the specified
+     * deploy actions.
      * </p>
      */
-    private static void processAutoDeploy(Map<String, String> configMap, BundleContext context, String defaultAutoDeployDir, LoadCallback callback, LoggingCallback loggingCallback)
-    {
+    private static void processAutoDeploy(Map<String, String> configMap, BundleContext context,
+            String defaultAutoDeployDir, LoadCallback callback, LoggingCallback loggingCallback) {
         // Determine if auto deploy actions to perform.
         String action = configMap.get(AUTO_DEPLOY_ACTION_PROPERTY);
         action = (action == null) ? "" : action;
         List<String> actionList = new ArrayList<String>();
         StringTokenizer st = new StringTokenizer(action, ",");
-        while (st.hasMoreTokens())
-        {
+        while (st.hasMoreTokens()) {
             String s = st.nextToken().trim().toLowerCase();
-            if (s.equals(AUTO_DEPLOY_INSTALL_VALUE)
-                || s.equals(AUTO_DEPLOY_START_VALUE)
-                || s.equals(AUTO_DEPLOY_UPDATE_VALUE)
-                || s.equals(AUTO_DEPLOY_UNINSTALL_VALUE))
-            {
+            if (s.equals(AUTO_DEPLOY_INSTALL_VALUE) || s.equals(AUTO_DEPLOY_START_VALUE)
+                    || s.equals(AUTO_DEPLOY_UPDATE_VALUE) || s.equals(AUTO_DEPLOY_UNINSTALL_VALUE)) {
                 actionList.add(s);
             }
         }
 
         // Perform auto-deploy actions.
-        if (actionList.size() > 0)
-        {
+        if (actionList.size() > 0) {
             // Retrieve the Start Level service, since it will be needed
             // to set the start level of the installed bundles.
-            StartLevel sl = (StartLevel) context.getService(
-                context.getServiceReference(org.osgi.service.startlevel.StartLevel.class.getName()));
+            StartLevel sl = (StartLevel) context
+                    .getService(context.getServiceReference(org.osgi.service.startlevel.StartLevel.class.getName()));
 
             // Get start level for auto-deploy bundles.
             int startLevel = sl.getInitialBundleStartLevel();
-            if (configMap.get(AUTO_DEPLOY_STARTLEVEL_PROPERTY) != null)
-            {
-                try
-                {
-                    startLevel = Integer.parseInt(
-                        configMap.get(AUTO_DEPLOY_STARTLEVEL_PROPERTY).toString());
-                }
-                catch (NumberFormatException ex)
-                {
+            if (configMap.get(AUTO_DEPLOY_STARTLEVEL_PROPERTY) != null) {
+                try {
+                    startLevel = Integer.parseInt(configMap.get(AUTO_DEPLOY_STARTLEVEL_PROPERTY).toString());
+                } catch (NumberFormatException ex) {
                     // Ignore and keep default level.
                 }
             }
@@ -141,8 +134,7 @@ public class AutoProcessor
             // Get list of already installed bundles as a map.
             Map<String, Bundle> installedBundleMap = new HashMap<String, Bundle>();
             Bundle[] bundles = context.getBundles();
-            for (int i = 0; i < bundles.length; i++)
-            {
+            for (int i = 0; i < bundles.length; i++) {
                 installedBundleMap.put(bundles[i].getLocation(), bundles[i]);
             }
 
@@ -156,29 +148,24 @@ public class AutoProcessor
 
             // Install bundle JAR files and remember the bundle objects.
             final List<Bundle> startBundleList = new ArrayList<Bundle>();
-            for (int i = 0; i < jarList.size(); i++)
-            {
+            for (int i = 0; i < jarList.size(); i++) {
                 // Look up the bundle by location, removing it from
                 // the map of installed bundles so the remaining bundles
                 // indicate which bundles may need to be uninstalled.
                 final String location = jarList.get(i);
                 Bundle b = installedBundleMap.remove(location);
 
-                try
-                {
+                try {
                     // If the bundle is not already installed, then install it
                     // if the 'install' action is present.
-                    if ((b == null) && actionList.contains(AUTO_DEPLOY_INSTALL_VALUE))
-                    {
+                    if ((b == null) && actionList.contains(AUTO_DEPLOY_INSTALL_VALUE)) {
                         InputStream stream = callback.openStream(location);
                         try {
                             b = context.installBundle(location, stream);
                         } finally {
-                            try
-                            {
+                            try {
                                 stream.close();
-                            } catch (IOException e)
-                            {
+                            } catch (IOException e) {
                                 // ignored
                             }
                         }
@@ -186,42 +173,32 @@ public class AutoProcessor
                     }
                     // If the bundle is already installed, then update it
                     // if the 'update' action is present.
-                    else if ((b != null) && actionList.contains(AUTO_DEPLOY_UPDATE_VALUE))
-                    {
+                    else if ((b != null) && actionList.contains(AUTO_DEPLOY_UPDATE_VALUE)) {
                         b.update();
                     }
 
                     // If we have found and/or successfully installed a bundle,
                     // then add it to the list of bundles to potentially start
                     // and also set its start level accordingly.
-                    if ((b != null) && !isFragment(b))
-                    {
+                    if ((b != null) && !isFragment(b)) {
                         startBundleList.add(b);
                         sl.setBundleStartLevel(b, startLevel);
                     }
-                }
-                catch (BundleException ex)
-                {
+                } catch (BundleException ex) {
                     loggingCallback.error("Auto-deploy install failed for " + location + ".", ex);
                 }
             }
 
             // Uninstall all bundles not in the auto-deploy directory if
             // the 'uninstall' action is present.
-            if (actionList.contains(AUTO_DEPLOY_UNINSTALL_VALUE))
-            {
-                for (Iterator<Entry<String, Bundle>> it = installedBundleMap.entrySet().iterator(); it.hasNext(); )
-                {
+            if (actionList.contains(AUTO_DEPLOY_UNINSTALL_VALUE)) {
+                for (Iterator<Entry<String, Bundle>> it = installedBundleMap.entrySet().iterator(); it.hasNext();) {
                     Entry<String, Bundle> entry = it.next();
                     Bundle b = entry.getValue();
-                    if (b.getBundleId() != 0)
-                    {
-                        try
-                        {
+                    if (b.getBundleId() != 0) {
+                        try {
                             b.uninstall();
-                        }
-                        catch (BundleException ex)
-                        {
+                        } catch (BundleException ex) {
                             loggingCallback.error("Auto-deploy uninstall failed for " + b.getLocation() + ".", ex);
                         }
                     }
@@ -230,17 +207,13 @@ public class AutoProcessor
 
             // Start all installed and/or updated bundles if the 'start'
             // action is present.
-            if (actionList.contains(AUTO_DEPLOY_START_VALUE))
-            {
-                for (int i = 0; i < startBundleList.size(); i++)
-                {
-                    try
-                    {
+            if (actionList.contains(AUTO_DEPLOY_START_VALUE)) {
+                for (int i = 0; i < startBundleList.size(); i++) {
+                    try {
                         startBundleList.get(i).start();
-                    }
-                    catch (BundleException ex)
-                    {
-                        loggingCallback.error("Auto-deploy start failed for " + startBundleList.get(i).getLocation() + ".", ex);
+                    } catch (BundleException ex) {
+                        loggingCallback.error(
+                                "Auto-deploy start failed for " + startBundleList.get(i).getLocation() + ".", ex);
                     }
                 }
             }
@@ -249,16 +222,15 @@ public class AutoProcessor
 
     /**
      * <p>
-     * Processes the auto-install and auto-start properties from the
-     * specified configuration properties.
+     * Processes the auto-install and auto-start properties from the specified
+     * configuration properties.
      * </p>
      */
-    private static void processAutoProperties(Map configMap, BundleContext context, LoggingCallback loggingCallback)
-    {
+    private static void processAutoProperties(Map configMap, BundleContext context, LoggingCallback loggingCallback) {
         // Retrieve the Start Level service, since it will be needed
         // to set the start level of the installed bundles.
-        StartLevel sl = (StartLevel) context.getService(
-            context.getServiceReference(org.osgi.service.startlevel.StartLevel.class.getName()));
+        StartLevel sl = (StartLevel) context
+                .getService(context.getServiceReference(org.osgi.service.startlevel.StartLevel.class.getName()));
 
         // Retrieve all auto-install and auto-start properties and install
         // their associated bundles. The auto-install property specifies a
@@ -269,13 +241,11 @@ public class AutoProcessor
         // property name, where "n" is the desired start level for the list
         // of bundles. If no start level is specified, the default start
         // level is assumed.
-        for (Iterator<String> i = configMap.keySet().iterator(); i.hasNext(); )
-        {
+        for (Iterator<String> i = configMap.keySet().iterator(); i.hasNext();) {
             String key = i.next().toLowerCase();
 
             // Ignore all keys that are not an auto property.
-            if (!key.startsWith(AUTO_INSTALL_PROP) && !key.startsWith(AUTO_START_PROP))
-            {
+            if (!key.startsWith(AUTO_INSTALL_PROP) && !key.startsWith(AUTO_START_PROP)) {
                 continue;
             }
 
@@ -283,54 +253,39 @@ public class AutoProcessor
             // then assume it is the default bundle start level, otherwise
             // parse the specified start level.
             int startLevel = sl.getInitialBundleStartLevel();
-            if (!key.equals(AUTO_INSTALL_PROP) && !key.equals(AUTO_START_PROP))
-            {
-                try
-                {
+            if (!key.equals(AUTO_INSTALL_PROP) && !key.equals(AUTO_START_PROP)) {
+                try {
                     startLevel = Integer.parseInt(key.substring(key.lastIndexOf('.') + 1));
-                }
-                catch (NumberFormatException ex)
-                {
+                } catch (NumberFormatException ex) {
                     loggingCallback.warn("Invalid auto-start property " + key + ".", ex);
                 }
             }
 
             // Parse and install the bundles associated with the key.
             StringTokenizer st = new StringTokenizer((String) configMap.get(key), "\" ", true);
-            for (String location = nextLocation(st); location != null; location = nextLocation(st))
-            {
-                try
-                {
+            for (String location = nextLocation(st); location != null; location = nextLocation(st)) {
+                try {
                     Bundle b = context.installBundle(location, null);
                     sl.setBundleStartLevel(b, startLevel);
-                }
-                catch (Exception ex)
-                {
+                } catch (Exception ex) {
                     loggingCallback.error("Auto-properties install for " + location + " failed.", ex);
                 }
             }
         }
 
         // Now loop through the auto-start bundles and start them.
-        for (Iterator<String> i = configMap.keySet().iterator(); i.hasNext(); )
-        {
+        for (Iterator<String> i = configMap.keySet().iterator(); i.hasNext();) {
             String key = i.next().toLowerCase();
-            if (key.startsWith(AUTO_START_PROP))
-            {
+            if (key.startsWith(AUTO_START_PROP)) {
                 StringTokenizer st = new StringTokenizer((String) configMap.get(key), "\" ", true);
-                for (String location = nextLocation(st); location != null; location = nextLocation(st))
-                {
+                for (String location = nextLocation(st); location != null; location = nextLocation(st)) {
                     // Installing twice just returns the same bundle.
-                    try
-                    {
+                    try {
                         Bundle b = context.installBundle(location, null);
-                        if (b != null)
-                        {
+                        if (b != null) {
                             b.start();
                         }
-                    }
-                    catch (Exception ex)
-                    {
+                    } catch (Exception ex) {
                         loggingCallback.error("Auto-properties start for " + location + " failed.", ex);
                     }
                 }
@@ -338,46 +293,34 @@ public class AutoProcessor
         }
     }
 
-    private static String nextLocation(StringTokenizer st)
-    {
+    private static String nextLocation(StringTokenizer st) {
         String retVal = null;
 
-        if (st.countTokens() > 0)
-        {
+        if (st.countTokens() > 0) {
             String tokenList = "\" ";
             StringBuffer tokBuf = new StringBuffer(10);
             String tok = null;
             boolean inQuote = false;
             boolean tokStarted = false;
             boolean exit = false;
-            while ((st.hasMoreTokens()) && (!exit))
-            {
+            while ((st.hasMoreTokens()) && (!exit)) {
                 tok = st.nextToken(tokenList);
-                if (tok.equals("\""))
-                {
-                    inQuote = ! inQuote;
-                    if (inQuote)
-                    {
+                if (tok.equals("\"")) {
+                    inQuote = !inQuote;
+                    if (inQuote) {
                         tokenList = "\"";
-                    }
-                    else
-                    {
+                    } else {
                         tokenList = "\" ";
                     }
 
-                }
-                else if (tok.equals(" "))
-                {
-                    if (tokStarted)
-                    {
+                } else if (tok.equals(" ")) {
+                    if (tokStarted) {
                         retVal = tokBuf.toString();
-                        tokStarted=false;
+                        tokStarted = false;
                         tokBuf = new StringBuffer(10);
                         exit = true;
                     }
-                }
-                else
-                {
+                } else {
                     tokStarted = true;
                     tokBuf.append(tok.trim());
                 }
@@ -385,8 +328,7 @@ public class AutoProcessor
 
             // Handle case where end of token stream and
             // still got data
-            if ((!exit) && (tokStarted))
-            {
+            if ((!exit) && (tokStarted)) {
                 retVal = tokBuf.toString();
             }
         }
@@ -394,8 +336,7 @@ public class AutoProcessor
         return retVal;
     }
 
-    private static boolean isFragment(Bundle bundle)
-    {
+    private static boolean isFragment(Bundle bundle) {
         return bundle.getHeaders().get(Constants.FRAGMENT_HOST) != null;
     }
 }
