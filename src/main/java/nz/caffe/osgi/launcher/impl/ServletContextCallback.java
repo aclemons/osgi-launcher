@@ -15,54 +15,62 @@
  */
 package nz.caffe.osgi.launcher.impl;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+
+import javax.servlet.ServletContext;
 
 import org.osgi.framework.BundleException;
 
 import nz.caffe.osgi.launcher.BundleCallback;
 
 /**
+ * Allow loading bundles from inside a WAR file.
  */
-public final class FileSystemCallback implements BundleCallback
+public class ServletContextCallback implements BundleCallback
 {
+
+    private final ServletContext servletContext;
+
+    /**
+     * @param servletContext
+     */
+    public ServletContextCallback(final ServletContext servletContext)
+    {
+        super();
+        this.servletContext = servletContext;
+    }
 
     public List<String> listBundles(final String directory)
     {
-        final File[] files = new File(directory).listFiles();
+
+        final Set<String> files = servletContext.getResourcePaths(directory);
 
         final List<String> jarList = new ArrayList<String>();
 
         if (files != null)
         {
-            Arrays.sort(files);
-
-            for (final File file : files)
+            for (String file : files)
             {
-                if (file.getName().endsWith(".jar"))
+                if (file.endsWith(".jar"))
                 {
-                    jarList.add(file.getAbsolutePath());
+                    jarList.add(file);
                 }
             }
         }
 
+        Collections.sort(jarList);
+
         return jarList;
+
     }
 
     public InputStream openStream(final String bundle) throws BundleException
     {
-        try
-        {
-            return new FileInputStream(new File(bundle));
-        } catch (FileNotFoundException e)
-        {
-            throw new BundleException("Unable to open stream for " + bundle, BundleException.UNSPECIFIED, e);
-        }
+        return this.servletContext.getResourceAsStream(bundle);
     }
 
 }
