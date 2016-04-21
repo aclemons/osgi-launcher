@@ -406,7 +406,7 @@ public abstract class BaseLauncher {
      * the system property file is located in the <tt>conf/</tt> directory of
      * the current user directory and is called "<tt>system.properties</tt>".
      * The precise file from which to load system properties can be set by
-     * initializing the "<tt>caffe.system.properties</tt>" system property to an
+     * initialising the "<tt>caffe.system.properties</tt>" system property to an
      * arbitrary URL.
      * </p>
      **/

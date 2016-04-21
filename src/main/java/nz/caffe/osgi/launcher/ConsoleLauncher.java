@@ -28,11 +28,8 @@ import nz.caffe.osgi.launcher.impl.BaseLauncher;
 
 /**
  * <p>
- * This class is the default way to instantiate and execute the framework. It is
- * not intended to be the only way to instantiate and execute the framework;
- * rather, it is one example of how to do so. When embedding the framework in a
- * host application, this class can serve as a simple guide of how to do so. It
- * may even be worthwhile to reuse some of its property handling capabilities.
+ * This class provides the default way to instantiate and execute an osgi
+ * runtime for console (standalone) based applications.
  * </p>
  **/
 public class ConsoleLauncher extends BaseLauncher {
