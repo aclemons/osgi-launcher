@@ -15,12 +15,14 @@
  */
 package nz.caffe.osgi.launcher;
 
+import java.io.File;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
@@ -30,12 +32,12 @@ import org.osgi.framework.launch.Framework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import nz.caffe.osgi.launcher.impl.ServletContextCallback;
+
 /**
  * This starts the framework when deploying inside a WAR file.
  */
 public class FrameworkLoaderListener implements ServletContextListener {
-
-    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
      * Context attribute to bind the Framework instance on successful startup.
@@ -47,11 +49,13 @@ public class FrameworkLoaderListener implements ServletContextListener {
 
     private Framework framework;
 
-    private Thread shutdownHook;
+    private Future<?> future;
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private ExecutorService pool;
 
-    private Future<?> future;
+    private Thread shutdownHook;
 
     public void contextDestroyed(final ServletContextEvent sce) {
         sce.getServletContext().log("Stopping OSGi Framework");
@@ -74,20 +78,39 @@ public class FrameworkLoaderListener implements ServletContextListener {
         if (this.future != null) {
             try {
                 this.future.get();
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 this.logger.warn("Interrupted waiting for framework to shutdown", e);
-            } catch (ExecutionException e) {
+            } catch (@SuppressWarnings("unused") final ExecutionException e) {
                 // ignored
             }
         }
 
         if (this.shutdownHook != null) {
-            Runtime.getRuntime().removeShutdownHook(shutdownHook);
+            Runtime.getRuntime().removeShutdownHook(this.shutdownHook);
         }
     }
 
     public void contextInitialized(final ServletContextEvent sce) {
-        final Framework fwk = new WarLauncher(sce.getServletContext()).launch(null, null, false);
+
+        // TODO: make cache dir configurable through web.xml
+
+        final File cacheDir;
+        final File servletTempDir = (File) sce.getServletContext().getAttribute(ServletContext.TEMPDIR);
+        if (servletTempDir == null) {
+            cacheDir = null;
+        } else {
+            cacheDir = new File(servletTempDir, "felix-cache");
+
+            sce.getServletContext().log("Using cache-dir " + cacheDir);
+        }
+
+        final Framework fwk;
+        try {
+            fwk = new WarLauncher(new ServletContextCallback(sce.getServletContext()), sce.getServletContext())
+                    .launch(null, cacheDir == null ? null : cacheDir.getAbsolutePath(), false);
+        } catch (final Exception e) {
+            throw new IllegalStateException(e);
+        }
 
         try {
             fwk.start();
@@ -120,8 +143,7 @@ public class FrameworkLoaderListener implements ServletContextListener {
 
         this.pool = Executors.newFixedThreadPool(1);
 
-        this.future = pool.submit(worker);
-
+        this.future = this.pool.submit(worker);
     }
 
 }

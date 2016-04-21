@@ -24,6 +24,8 @@ import java.util.Set;
 import javax.servlet.ServletContext;
 
 import org.osgi.framework.BundleException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import nz.caffe.osgi.launcher.LoadCallback;
 
@@ -31,6 +33,8 @@ import nz.caffe.osgi.launcher.LoadCallback;
  * Allow loading bundles from inside a WAR file.
  */
 public class ServletContextCallback implements LoadCallback {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final ServletContext servletContext;
 
@@ -44,14 +48,16 @@ public class ServletContextCallback implements LoadCallback {
 
     public List<String> listBundles(final String directory) {
 
-        final Set<String> files = servletContext.getResourcePaths(directory);
+        final Set<String> files = this.servletContext.getResourcePaths(directory);
 
         final List<String> jarList = new ArrayList<String>();
 
         if (files != null) {
-            for (String file : files) {
-                if (file.endsWith(".jar")) {
+            for (final String file : files) {
+                if (file.endsWith(".jar") || file.endsWith(".war")) {
                     jarList.add(file);
+                } else {
+                    this.logger.debug("Filtered {} from deploy list for directory {}", file, directory);
                 }
             }
         }
@@ -63,7 +69,14 @@ public class ServletContextCallback implements LoadCallback {
     }
 
     public InputStream openStream(final String bundle) throws BundleException {
-        return this.servletContext.getResourceAsStream(bundle);
+        final InputStream stream = this.servletContext.getResourceAsStream(bundle);
+
+        if (stream == null) {
+            throw new BundleException("No such resource " + bundle, BundleException.UNSPECIFIED);
+
+        }
+
+        return stream;
     }
 
 }

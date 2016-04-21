@@ -20,9 +20,10 @@ package nz.caffe.osgi.launcher;
 
 import org.osgi.framework.FrameworkEvent;
 import org.osgi.framework.launch.Framework;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import nz.caffe.osgi.launcher.impl.FileSystemCallback;
-import nz.caffe.osgi.launcher.impl.SystemErrorLoggingCallback;
 
 /**
  * <p>
@@ -40,6 +41,8 @@ public class Main {
      **/
     public static final String BUNDLE_DIR_SWITCH = "-b";
 
+    private static final Logger LOG = LoggerFactory.getLogger(Main.class);
+
     /**
      * <p>
      * This method performs the main task of constructing an framework instance
@@ -55,8 +58,8 @@ public class Main {
      * before starting the framework. This mechanism is mainly shorthand for
      * people starting the framework from the command line to avoid having to
      * specify a bunch of <tt>-D</tt> system property definitions. The only
-     * properties defined in this file that will impact the framework's behavior
-     * are the those concerning setting HTTP proxies, such as
+     * properties defined in this file that will impact the framework's
+     * behaviour are the those concerning setting HTTP proxies, such as
      * <tt>http.proxyHost</tt>, <tt>http.proxyPort</tt>, and
      * <tt>http.proxyAuth</tt>. Generally speaking, the framework does not use
      * system properties at all.</li>
@@ -150,31 +153,36 @@ public class Main {
      * @throws Exception
      *             If an error occurs.
      **/
-    public static void main(String[] args) throws Exception {
+    public static void main(final String[] args) throws Exception {
+
         // Look for bundle directory and/or cache directory.
         // We support at most one argument, which is the bundle
         // cache directory.
         String bundleDir = null;
         String cacheDir = null;
         boolean expectBundleDir = false;
-        for (int i = 0; i < args.length; i++) {
-            if (args[i].equals(BUNDLE_DIR_SWITCH)) {
+        for (final String arg : args) {
+            if ("-h".equals(arg) || "--help".equals(arg)) {
+                printHelp();
+                System.exit(0);
+            } else if (BUNDLE_DIR_SWITCH.equals(arg)) {
                 expectBundleDir = true;
             } else if (expectBundleDir) {
-                bundleDir = args[i];
+                bundleDir = arg;
                 expectBundleDir = false;
             } else {
-                cacheDir = args[i];
+                cacheDir = arg;
             }
         }
 
         if ((args.length > 3) || (expectBundleDir && bundleDir == null)) {
-            System.out.println("Usage: [-b <bundle-deploy-dir>] [<bundle-cache-dir>]");
-            System.exit(0);
+            printHelp();
+            System.exit(1);
         }
 
-        final Framework fwk = new ConsoleLauncher(new FileSystemCallback(), new SystemErrorLoggingCallback())
-                .launch(bundleDir, cacheDir, true);
+        final ConsoleLauncher launcher = new ConsoleLauncher(new FileSystemCallback());
+
+        final Framework fwk = launcher.launch(bundleDir, cacheDir, true);
 
         FrameworkEvent event;
         do {
@@ -182,14 +190,20 @@ public class Main {
             fwk.start();
             // Wait for framework to stop to exit the VM.
             event = fwk.waitForStop(0);
-        }
-        // If the framework was updated, then restart it.
-        while (event.getType() == FrameworkEvent.STOPPED_UPDATE);
+
+            LOG.debug("Got stop event {}", Integer.valueOf(event.getType()));
+
+            // If the framework was updated, then restart it.
+        } while (event.getType() == FrameworkEvent.STOPPED_UPDATE);
 
         // Runtime.getRuntime().removeShutdownHook(shutdownHook);
 
         // Otherwise, exit.
         System.exit(0);
+    }
+
+    private static void printHelp() {
+        System.out.println("Usage: [-b <bundle-deploy-dir>] [<bundle-cache-dir>]");
     }
 
 }

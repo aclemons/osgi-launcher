@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.osgi.framework.BundleException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import nz.caffe.osgi.launcher.LoadCallback;
 
@@ -31,6 +33,8 @@ import nz.caffe.osgi.launcher.LoadCallback;
  * Allow loading bundles from simple directories on the file system.
  */
 public final class FileSystemCallback implements LoadCallback {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public List<String> listBundles(final String directory) {
         final File[] files = new File(directory).listFiles();
@@ -41,8 +45,10 @@ public final class FileSystemCallback implements LoadCallback {
             Arrays.sort(files);
 
             for (final File file : files) {
-                if (file.getName().endsWith(".jar")) {
+                if (file.getName().endsWith(".jar") || file.getName().endsWith(".war")) {
                     jarList.add(file.getAbsolutePath());
+                } else {
+                    this.logger.debug("Filtered {} from deploy list for directory {}", file, directory);
                 }
             }
         }
@@ -53,7 +59,7 @@ public final class FileSystemCallback implements LoadCallback {
     public InputStream openStream(final String bundle) throws BundleException {
         try {
             return new FileInputStream(new File(bundle));
-        } catch (FileNotFoundException e) {
+        } catch (final FileNotFoundException e) {
             throw new BundleException("Unable to open stream for " + bundle, BundleException.UNSPECIFIED, e);
         }
     }

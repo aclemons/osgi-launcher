@@ -18,23 +18,14 @@
  */
 package nz.caffe.osgi.launcher;
 
-import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 
 import javax.servlet.ServletContext;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import nz.caffe.osgi.launcher.impl.BaseLauncher;
-import nz.caffe.osgi.launcher.impl.ServletContextCallback;
-import nz.caffe.osgi.launcher.impl.Slf4jLoggingCallback;
 
 /**
  * <p>
@@ -52,15 +43,14 @@ public class WarLauncher extends BaseLauncher {
      **/
     public static final String AUTO_DEPLOY_DIR_VALUE = "/WEB-INF/osgi/bundle";
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-
     private final ServletContext servletContext;
 
     /**
+     * @param loadCallback
      * @param servletContext
      */
-    public WarLauncher(final ServletContext servletContext) {
-        super(new ServletContextCallback(servletContext), new Slf4jLoggingCallback());
+    public WarLauncher(final LoadCallback loadCallback, final ServletContext servletContext) {
+        super(loadCallback);
         this.servletContext = servletContext;
     }
 
@@ -70,47 +60,46 @@ public class WarLauncher extends BaseLauncher {
     }
 
     @Override
-    protected Map<String, String> loadConfigProperties() {
-        // The config properties file is either specified by a system
-        // property or in WEB-INF/osgi/conf
+    protected Properties loadPropertiesFile(final String systemPropertyName, final String defaultFileName,
+            final String type) {
+
+        // The properties file is either specified by a system
+        // property or in /WEB-INF/osgi/conf
         // Try to load it from one of these places.
 
         // Read the properties file.
         final Properties props = new Properties();
 
         // See if the property URL was specified as a property.
-        final String custom = System.getProperty(BaseLauncher.CONFIG_PROPERTIES_PROP);
+        final String custom = System.getProperty(systemPropertyName);
 
         if (custom == null) {
-            final InputStream is = this.servletContext
-                    .getResourceAsStream("/WEB-INF/osgi/conf/" + BaseLauncher.CONFIG_PROPERTIES_FILE_VALUE);
+            final InputStream is = this.servletContext.getResourceAsStream("/WEB-INF/osgi/conf/" + defaultFileName);
 
             if (is == null) {
-                this.logger.trace("WAR file does not contain " + "/WEB-INF/osgi/conf/{}. Skipping loading "
-                        + "config properties.", BaseLauncher.CONFIG_PROPERTIES_FILE_VALUE);
+                this.logger.debug("No {} found.", defaultFileName);
                 return null;
             }
 
+            // if the file exists but loading fails, fail starting the framework
             try {
                 props.load(is);
             } catch (final Exception ex) {
-                // TODO: do not swallow errors
-                this.logger.warn("Error loading config properties from " + "/WEB-INF/osgi/conf/"
-                        + BaseLauncher.CONFIG_PROPERTIES_FILE_VALUE, ex);
+                throw new IllegalArgumentException(
+                        "Error loading " + type + " properties from /WEB-INF/osgi/conf/" + defaultFileName, ex);
+            } finally {
                 closeQuietly(is);
-                return null;
             }
         } else {
             URL propURL = null;
             try {
                 propURL = new URL(custom);
             } catch (final MalformedURLException ex) {
+                final String message = type + " properties url {} could not be loaded as a URL. Checking WAR file.";
                 if (this.logger.isTraceEnabled()) {
-                    this.logger.trace("Config properties url " + propURL + " could not be "
-                            + "loaded as a URL. Checking WAR file.", ex);
+                    this.logger.trace(message, ex);
                 } else {
-                    this.logger.debug("Config properties url {} could not be " + "loaded as a URL. Checking WAR file.",
-                            propURL);
+                    this.logger.debug(message);
                 }
             }
 
@@ -119,146 +108,32 @@ public class WarLauncher extends BaseLauncher {
                 if (propURL == null) {
                     is = this.servletContext.getResourceAsStream(custom);
 
+                    // couldn't be loaded as a URL or as from WAR
                     if (is == null) {
-                        // TODO: do not swallow errors
-                        this.logger.warn("Error loading config properties from {}", custom);
-                        return null;
+                        throw new IllegalArgumentException("Error loading " + type + " properties from " + custom);
                     }
+
+                    this.logger.info("{} properties url {} found inside WAR file.", type, custom);
 
                 } else {
                     try {
                         is = propURL.openConnection().getInputStream();
-                    } catch (final FileNotFoundException ex) {
-                        // Ignore file not found.
-                        return null;
-                    } catch (Exception ex) {
-                        // TODO: do not swallow exceptions
-                        this.logger.warn("Error loading config properties from " + propURL, ex);
-                        return null;
+                    } catch (final Exception ex) {
+                        throw new IllegalArgumentException("Error loading " + type + " properties from " + custom, ex);
                     }
                 }
 
                 try {
                     props.load(is);
                 } catch (final Exception ex) {
-                    // TODO: do not swallow errors
-                    this.logger.warn("Error loading system properties from " + propURL, ex);
-                    return null;
+                    throw new IllegalArgumentException("Error loading " + type + " properties from " + custom, ex);
                 }
             } finally {
                 closeQuietly(is);
             }
         }
 
-        // Perform variable substitution for system properties and
-        // convert to dictionary.
-        Map<String, String> map = new HashMap<String, String>();
-        for (Enumeration<?> e = props.propertyNames(); e.hasMoreElements();) {
-            String name = (String) e.nextElement();
-            map.put(name, Util.substVars(props.getProperty(name), name, null, props));
-        }
-
-        return map;
-    }
-
-    /**
-     * <p>
-     * Loads the properties in the system property file associated with the
-     * framework installation into <tt>System.setProperty()</tt>. These
-     * properties are not directly used by the framework in anyway. By default,
-     * the system property file is located in the <tt>conf/</tt> directory of
-     * the WEB-INF/osgi directory in the war file and is called
-     * "<tt>system.properties</tt>". The precise file from which to load system
-     * properties can be set by initialising the
-     * "<tt>caffe.system.properties</tt>" system property to an arbitrary URL.
-     * </p>
-     **/
-    @Override
-    protected void loadSystemProperties() {
-        // The system properties file is either specified by a system
-        // property or in WEB-INF/osgi/conf
-        // Try to load it from one of these places.
-
-        // Read the properties file.
-        final Properties props = new Properties();
-
-        // See if the property URL was specified as a property.
-        final String custom = System.getProperty(BaseLauncher.SYSTEM_PROPERTIES_PROP);
-
-        if (custom == null) {
-            final InputStream is = this.servletContext
-                    .getResourceAsStream("/WEB-INF/osgi/conf/" + BaseLauncher.SYSTEM_PROPERTIES_FILE_VALUE);
-
-            if (is == null) {
-                this.logger.trace("/WAR file does not contain " + "WEB-INF/osgi/conf/{}. Skipping loading "
-                        + "system properties.", BaseLauncher.SYSTEM_PROPERTIES_FILE_VALUE);
-                return;
-            }
-
-            try {
-                props.load(is);
-            } catch (final Exception ex) {
-                // TODO: do not swallow errors
-                this.logger.warn("Error loading system properties from " + "/WEB-INF/conf/"
-                        + BaseLauncher.SYSTEM_PROPERTIES_FILE_VALUE, ex);
-                closeQuietly(is);
-                return;
-            }
-        } else {
-            URL propURL = null;
-            try {
-                propURL = new URL(custom);
-            } catch (final MalformedURLException ex) {
-                if (this.logger.isTraceEnabled()) {
-                    this.logger.trace("System properties url " + propURL + " could not be "
-                            + "loaded as a URL. Checking WAR file.", ex);
-                } else {
-                    this.logger.debug("System properties url {} could not be " + "loaded as a URL. Checking WAR file.",
-                            propURL);
-                }
-            }
-
-            InputStream is = null;
-            try {
-                if (propURL == null) {
-                    is = this.servletContext.getResourceAsStream(custom);
-
-                    if (is == null) {
-                        // TODO: do not swallow errors
-                        this.logger.warn("Error loading system properties from " + custom);
-                        return;
-                    }
-
-                } else {
-                    try {
-                        is = propURL.openConnection().getInputStream();
-                    } catch (final FileNotFoundException ex) {
-                        // Ignore file not found.
-                        return;
-                    } catch (Exception ex) {
-                        // TODO: do not swallow exceptions
-                        this.logger.warn("Error loading system properties from " + propURL, ex);
-                        return;
-                    }
-                }
-
-                try {
-                    props.load(is);
-                } catch (final Exception ex) {
-                    // TODO: do not swallow errors
-                    this.logger.warn("Error loading system properties from " + propURL, ex);
-                    return;
-                }
-            } finally {
-                closeQuietly(is);
-            }
-        }
-
-        // Perform variable substitution on specified properties.
-        for (Enumeration<?> e = props.propertyNames(); e.hasMoreElements();) {
-            String name = (String) e.nextElement();
-            System.setProperty(name, Util.substVars(props.getProperty(name), name, null, null));
-        }
+        return props;
     }
 
 }

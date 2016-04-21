@@ -19,14 +19,9 @@
 package nz.caffe.osgi.launcher;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 
 import nz.caffe.osgi.launcher.impl.BaseLauncher;
@@ -49,10 +44,9 @@ public class ConsoleLauncher extends BaseLauncher {
 
     /**
      * @param loadCallback
-     * @param loggingCallback
      */
-    public ConsoleLauncher(final LoadCallback loadCallback, final LoggingCallback loggingCallback) {
-        super(loadCallback, loggingCallback);
+    public ConsoleLauncher(final LoadCallback loadCallback) {
+        super(loadCallback);
     }
 
     @Override
@@ -60,146 +54,54 @@ public class ConsoleLauncher extends BaseLauncher {
         return AUTO_DEPLOY_DIR_VALUE;
     }
 
-    /**
-     * <p>
-     * Loads the configuration properties in the configuration property file
-     * associated with the framework installation; these properties are
-     * accessible to the framework and to bundles and are intended for
-     * configuration purposes. By default, the configuration property file is
-     * located in the <tt>conf/</tt> directory of the current user directory and
-     * is called "<tt>config.properties</tt>". The precise file from which to
-     * load configuration properties can be set by initialising the
-     * "<tt>caffe.config.properties</tt>" system property to an arbitrary URL.
-     * </p>
-     *
-     * @return A <tt>Properties</tt> instance or <tt>null</tt> if there was an
-     *         error.
-     **/
     @Override
-    protected Map<String, String> loadConfigProperties() {
+    protected Properties loadPropertiesFile(final String systemPropertyName, final String defaultFileName,
+            final String type) {
         // The config properties file is either specified by a system
         // property or in USER_DIR/conf
         // Try to load it from one of these places.
 
         // See if the property URL was specified as a property.
-        URL propURL = null;
-        String custom = System.getProperty(CONFIG_PROPERTIES_PROP);
-        if (custom != null) {
-            try {
-                propURL = new URL(custom);
-            } catch (MalformedURLException ex) {
-                System.err.print("Main: " + ex);
-                return null;
-            }
-        } else {
+        final URL propURL;
+        final String custom = System.getProperty(systemPropertyName);
+        if (custom == null) {
             // use the current directory as default.
             final File confDir = new File(System.getProperty("user.dir"), CONFIG_DIRECTORY);
+            final File propertiesFile = new File(confDir, defaultFileName);
+
+            if (!propertiesFile.exists()) {
+                this.logger.debug("No {} found", defaultFileName);
+                return null;
+            }
 
             try {
-                propURL = new File(confDir, CONFIG_PROPERTIES_FILE_VALUE).toURL();
+                propURL = propertiesFile.toURI().toURL();
             } catch (MalformedURLException ex) {
-                System.err.print("Main: " + ex);
-                return null;
+                throw new IllegalArgumentException(
+                        "Error loading " + type + " properties from " + propertiesFile.getAbsolutePath(), ex);
+            }
+        } else {
+            try {
+                propURL = new URL(custom);
+            } catch (final MalformedURLException ex) {
+                throw new IllegalArgumentException("Error loading " + type + " properties from " + custom, ex);
             }
         }
 
         // Read the properties file.
-        Properties props = new Properties();
+        final Properties props = new Properties();
         InputStream is = null;
         try {
             // Try to load config.properties.
             is = propURL.openConnection().getInputStream();
             props.load(is);
-            is.close();
-        } catch (Exception ex) {
-            // Try to close input stream if we have one.
-            try {
-                if (is != null)
-                    is.close();
-            } catch (IOException ex2) {
-                // Nothing we can do.
-            }
-
-            return null;
+        } catch (final Exception ex) {
+            throw new IllegalArgumentException("Error loading " + type + " properties from " + propURL, ex);
+        } finally {
+            closeQuietly(is);
         }
 
-        // Perform variable substitution for system properties and
-        // convert to dictionary.
-        Map<String, String> map = new HashMap<String, String>();
-        for (Enumeration<?> e = props.propertyNames(); e.hasMoreElements();) {
-            String name = (String) e.nextElement();
-            map.put(name, Util.substVars(props.getProperty(name), name, null, props));
-        }
-
-        return map;
-    }
-
-    /**
-     * <p>
-     * Loads the properties in the system property file associated with the
-     * framework installation into <tt>System.setProperty()</tt>. These
-     * properties are not directly used by the framework in anyway. By default,
-     * the system property file is located in the <tt>conf/</tt> directory of
-     * the current user directory and is called "<tt>system.properties</tt>".
-     * The precise file from which to load system properties can be set by
-     * initializing the "<tt>caffe.system.properties</tt>" system property to an
-     * arbitrary URL.
-     * </p>
-     **/
-    @Override
-    protected void loadSystemProperties() {
-        // The system properties file is either specified by a system
-        // property or in USER_DIR/conf
-        // Try to load it from one of these places.
-
-        // See if the property URL was specified as a property.
-        URL propURL = null;
-        String custom = System.getProperty(BaseLauncher.SYSTEM_PROPERTIES_PROP);
-        if (custom != null) {
-            try {
-                propURL = new URL(custom);
-            } catch (MalformedURLException ex) {
-                System.err.print("Main: " + ex);
-                return;
-            }
-        } else {
-            // use the current directory as default.
-            final File confDir = new File(System.getProperty("user.dir"), BaseLauncher.CONFIG_DIRECTORY);
-
-            try {
-                propURL = new File(confDir, BaseLauncher.SYSTEM_PROPERTIES_FILE_VALUE).toURL();
-            } catch (MalformedURLException ex) {
-                System.err.print("Main: " + ex);
-                return;
-            }
-        }
-
-        // Read the properties file.
-        Properties props = new Properties();
-        InputStream is = null;
-        try {
-            is = propURL.openConnection().getInputStream();
-            props.load(is);
-            is.close();
-        } catch (FileNotFoundException ex) {
-            // Ignore file not found.
-        } catch (Exception ex) {
-            System.err.println("Main: Error loading system properties from " + propURL);
-            System.err.println("Main: " + ex);
-            try {
-                if (is != null)
-                    is.close();
-            } catch (IOException ex2) {
-                // Nothing we can do.
-            }
-            return;
-        }
-
-        // Perform variable substitution on specified properties.
-        for (Enumeration<?> e = props.propertyNames(); e.hasMoreElements();) {
-            String name = (String) e.nextElement();
-            System.setProperty(name, Util.substVars(props.getProperty(name), name, null, null));
-        }
+        return props;
     }
 
 }
