@@ -56,12 +56,12 @@ public class Main
      * The property name used to specify whether the launcher should
      * install a shutdown hook.
     **/
-    public static final String SHUTDOWN_HOOK_PROP = "felix.shutdown.hook";
+    public static final String SHUTDOWN_HOOK_PROP = "caffe.shutdown.hook";
     /**
      * The property name used to specify an URL to the system
      * property file.
     **/
-    public static final String SYSTEM_PROPERTIES_PROP = "felix.system.properties";
+    public static final String SYSTEM_PROPERTIES_PROP = "caffe.system.properties";
     /**
      * The default name used for the system properties file.
     **/
@@ -70,7 +70,7 @@ public class Main
      * The property name used to specify an URL to the configuration
      * property file to be used for the created the framework instance.
     **/
-    public static final String CONFIG_PROPERTIES_PROP = "felix.config.properties";
+    public static final String CONFIG_PROPERTIES_PROP = "caffe.config.properties";
     /**
      * The default name used for the configuration properties file.
     **/
@@ -107,11 +107,9 @@ public class Main
      *       instance and to pass configuration information into
      *       bundles installed into the framework instance. The configuration
      *       property file is called <tt>config.properties</tt> by default
-     *       and is located in the <tt>conf/</tt> directory of the Felix
-     *       installation directory, which is the parent directory of the
-     *       directory containing the <tt>felix.jar</tt> file. It is possible
+     *       and is located in the <tt>conf/</tt> of the current user directory. It is possible
      *       to use a different location for the property file by specifying
-     *       the desired URL using the <tt>felix.config.properties</tt>
+     *       the desired URL using the <tt>caffe.config.properties</tt>
      *       system property; this should be set using the <tt>-D</tt> syntax
      *       when executing the JVM. If the <tt>config.properties</tt> file
      *       cannot be found, then default values are used for all configuration
@@ -122,17 +120,17 @@ public class Main
      *   </li>
      *   <li><i><b>Copy configuration properties specified as system properties
      *       into the set of configuration properties.</b></i> Even though the
-     *       Felix framework does not consult system properties for configuration
+     *       most OSGi frameworks do not consult system properties for configuration
      *       information, sometimes it is convenient to specify them on the command
-     *       line when launching Felix. To make this possible, the Felix launcher
+     *       line when launching the runtime. To make this possible, the launcher
      *       copies any configuration properties specified as system properties
-     *       into the set of configuration properties passed into Felix.
+     *       into the set of configuration properties passed into runtime.
      *   </li>
      *   <li><i><b>Add shutdown hook.</b></i> To make sure the framework shutdowns
      *       cleanly, the launcher installs a shutdown hook; this can be disabled
-     *       with the <tt>felix.shutdown.hook</tt> configuration property.
+     *       with the <tt>caffe.shutdown.hook</tt> configuration property.
      *   </li>
-     *   <li><i><b>Create and initialize a framework instance.</b></i> The OSGi standard
+     *   <li><i><b>Create and initialise a framework instance.</b></i> The OSGi standard
      *       <tt>FrameworkFactory</tt> is retrieved from <tt>META-INF/services</tt>
      *       and used to create a framework instance with the configuration properties.
      *   </li>
@@ -163,11 +161,11 @@ public class Main
      *       specified directory, controlled by the following configuration
      *       properties:
      *     <ul>
-     *       <li><tt>felix.auto.deploy.dir</tt> - Specifies the auto-deploy directory
+     *       <li><tt>caffe.auto.deploy.dir</tt> - Specifies the auto-deploy directory
      *           from which bundles are automatically deploy at framework startup.
      *           The default is the <tt>bundle/</tt> directory of the current directory.
      *       </li>
-     *       <li><tt>felix.auto.deploy.action</tt> - Specifies the auto-deploy actions
+     *       <li><tt>caffe.auto.deploy.action</tt> - Specifies the auto-deploy actions
      *           to be found on bundle JAR files found in the auto-deploy directory.
      *           The possible actions are <tt>install</tt>, <tt>update</tt>,
      *           <tt>start</tt>, and <tt>uninstall</tt>. If no actions are specified,
@@ -179,15 +177,15 @@ public class Main
      *   <li>Bundle auto-properties - Configuration properties which specify URLs
      *       to bundles to install/start:
      *     <ul>
-     *       <li><tt>felix.auto.install.N</tt> - Space-delimited list of bundle
+     *       <li><tt>caffe.auto.install.N</tt> - Space-delimited list of bundle
      *           URLs to automatically install when the framework is started,
      *           where <tt>N</tt> is the start level into which the bundle will be
-     *           installed (e.g., felix.auto.install.2).
+     *           installed (e.g., caffe.auto.install.2).
      *       </li>
-     *       <li><tt>felix.auto.start.N</tt> - Space-delimited list of bundle URLs
+     *       <li><tt>caffe.auto.start.N</tt> - Space-delimited list of bundle URLs
      *           to automatically install and start when the framework is started,
      *           where <tt>N</tt> is the start level into which the bundle will be
-     *           installed (e.g., felix.auto.start.2).
+     *           installed (e.g., caffe.auto.start.2).
      *       </li>
      *     </ul>
      *   </li>
@@ -269,7 +267,7 @@ public class Main
         String enableHook = configProps.get(SHUTDOWN_HOOK_PROP);
         if ((enableHook == null) || !enableHook.equalsIgnoreCase("false"))
         {
-            Runtime.getRuntime().addShutdownHook(new Thread("Felix Shutdown Hook") {
+            Runtime.getRuntime().addShutdownHook(new Thread("caffe Shutdown Hook") {
                 @Override
                 public void run()
                 {
@@ -282,7 +280,7 @@ public class Main
                             fwk.waitForStop(0);
                         }
                     }
-                    catch (Exception ex)
+                    catch (final Exception ex)
                     {
                         System.err.println("Error stopping framework: " + ex);
                     }
@@ -362,19 +360,17 @@ public class Main
      * Loads the properties in the system property file associated with the
      * framework installation into <tt>System.setProperty()</tt>. These properties
      * are not directly used by the framework in anyway. By default, the system
-     * property file is located in the <tt>conf/</tt> directory of the Felix
-     * installation directory and is called "<tt>system.properties</tt>". The
-     * installation directory of Felix is assumed to be the parent directory of
-     * the <tt>felix.jar</tt> file as found on the system class path property.
+     * property file is located in the <tt>conf/</tt> directory of the current user
+     * directory and is called "<tt>system.properties</tt>".
      * The precise file from which to load system properties can be set by
-     * initializing the "<tt>felix.system.properties</tt>" system property to an
+     * initializing the "<tt>caffe.system.properties</tt>" system property to an
      * arbitrary URL.
      * </p>
     **/
-    public static void loadSystemProperties()
+    private static void loadSystemProperties()
     {
         // The system properties file is either specified by a system
-        // property or it is in the same directory as the Felix JAR file.
+        // property or in USER_DIR/conf
         // Try to load it from one of these places.
 
         // See if the property URL was specified as a property.
@@ -394,27 +390,8 @@ public class Main
         }
         else
         {
-            // Determine where the configuration directory is by figuring
-            // out where felix.jar is located on the system class path.
-            File confDir = null;
-            String classpath = System.getProperty("java.class.path");
-            int index = classpath.toLowerCase().indexOf("felix.jar");
-            int start = classpath.lastIndexOf(File.pathSeparator, index) + 1;
-            if (index >= start)
-            {
-                // Get the path of the felix.jar file.
-                String jarLocation = classpath.substring(start, index);
-                // Calculate the conf directory based on the parent
-                // directory of the felix.jar directory.
-                confDir = new File(
-                    new File(new File(jarLocation).getAbsolutePath()).getParent(),
-                    CONFIG_DIRECTORY);
-            }
-            else
-            {
-                // Can't figure it out so use the current directory as default.
-                confDir = new File(System.getProperty("user.dir"), CONFIG_DIRECTORY);
-            }
+            // use the current directory as default.
+            final File confDir = new File(System.getProperty("user.dir"), CONFIG_DIRECTORY);
 
             try
             {
@@ -471,22 +448,19 @@ public class Main
      * associated with the framework installation; these properties
      * are accessible to the framework and to bundles and are intended
      * for configuration purposes. By default, the configuration property
-     * file is located in the <tt>conf/</tt> directory of the Felix
-     * installation directory and is called "<tt>config.properties</tt>".
-     * The installation directory of Felix is assumed to be the parent
-     * directory of the <tt>felix.jar</tt> file as found on the system class
-     * path property. The precise file from which to load configuration
-     * properties can be set by initializing the "<tt>felix.config.properties</tt>"
+     * file is located in the <tt>conf/</tt> directory of the current user
+     * directory and is called "<tt>config.properties</tt>".
+     * The precise file from which to load configuration
+     * properties can be set by initializing the "<tt>caffe.config.properties</tt>"
      * system property to an arbitrary URL.
      * </p>
      * @return A <tt>Properties</tt> instance or <tt>null</tt> if there was an error.
     **/
-    public static Map<String, String> loadConfigProperties()
+    private static Map<String, String> loadConfigProperties()
     {
         // The config properties file is either specified by a system
-        // property or it is in the conf/ directory of the Felix
-        // installation directory.  Try to load it from one of these
-        // places.
+        // property or in USER_DIR/conf
+        // Try to load it from one of these places.
 
         // See if the property URL was specified as a property.
         URL propURL = null;
@@ -505,27 +479,8 @@ public class Main
         }
         else
         {
-            // Determine where the configuration directory is by figuring
-            // out where felix.jar is located on the system class path.
-            File confDir = null;
-            String classpath = System.getProperty("java.class.path");
-            int index = classpath.toLowerCase().indexOf("felix.jar");
-            int start = classpath.lastIndexOf(File.pathSeparator, index) + 1;
-            if (index >= start)
-            {
-                // Get the path of the felix.jar file.
-                String jarLocation = classpath.substring(start, index);
-                // Calculate the conf directory based on the parent
-                // directory of the felix.jar directory.
-                confDir = new File(
-                    new File(new File(jarLocation).getAbsolutePath()).getParent(),
-                    CONFIG_DIRECTORY);
-            }
-            else
-            {
-                // Can't figure it out so use the current directory as default.
-                confDir = new File(System.getProperty("user.dir"), CONFIG_DIRECTORY);
-            }
+            // use the current directory as default.
+            final File confDir = new File(System.getProperty("user.dir"), CONFIG_DIRECTORY);
 
             try
             {
@@ -576,13 +531,14 @@ public class Main
         return map;
     }
 
-    public static void copySystemProperties(Map<String, String> configProps)
+    private static void copySystemProperties(Map<String, String> configProps)
     {
         for (Enumeration<?> e = System.getProperties().propertyNames();
              e.hasMoreElements(); )
         {
             String key = (String) e.nextElement();
-            if (key.startsWith("felix.") || key.startsWith("org.osgi.framework."))
+            if (key.startsWith("caffe.") || key.startsWith("felix.")
+                    || key.startsWith("org.osgi.framework."))
             {
                 configProps.put(key, System.getProperty(key));
             }

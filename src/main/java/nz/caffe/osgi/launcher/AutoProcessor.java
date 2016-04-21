@@ -41,7 +41,7 @@ public class AutoProcessor
     /**
      * The property name used for the bundle directory.
     **/
-    public static final String AUTO_DEPLOY_DIR_PROPERTY = "felix.auto.deploy.dir";
+    public static final String AUTO_DEPLOY_DIR_PROPERTY = "caffe.auto.deploy.dir";
     /**
      * The default name used for the bundle directory.
     **/
@@ -49,11 +49,11 @@ public class AutoProcessor
     /**
      * The property name used to specify auto-deploy actions.
     **/
-    public static final String AUTO_DEPLOY_ACTION_PROPERTY = "felix.auto.deploy.action";
+    public static final String AUTO_DEPLOY_ACTION_PROPERTY = "caffe.auto.deploy.action";
     /**
      * The property name used to specify auto-deploy start level.
     **/
-    public static final String AUTO_DEPLOY_STARTLEVEL_PROPERTY = "felix.auto.deploy.startlevel";
+    public static final String AUTO_DEPLOY_STARTLEVEL_PROPERTY = "caffe.auto.deploy.startlevel";
     /**
      * The name used for the auto-deploy install action.
     **/
@@ -73,11 +73,11 @@ public class AutoProcessor
     /**
      * The property name prefix for the launcher's auto-install property.
     **/
-    public static final String AUTO_INSTALL_PROP = "felix.auto.install";
+    public static final String AUTO_INSTALL_PROP = "caffe.auto.install";
     /**
      * The property name prefix for the launcher's auto-start property.
     **/
-    public static final String AUTO_START_PROP = "felix.auto.start";
+    public static final String AUTO_START_PROP = "caffe.auto.start";
 
     /**
      * Used to instigate auto-deploy directory process and auto-install/auto-start
