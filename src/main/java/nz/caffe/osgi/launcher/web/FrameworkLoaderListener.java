@@ -179,6 +179,8 @@ public final class FrameworkLoaderListener implements ServletContextListener {
 
             this.logger.debug("Published Framework instance as ServletContext attribute with name [{}]",
                     FRAMEWORK_ATTRIBUTE);
+            this.logger.debug("Published BundleContex as ServletContext attribute with name [{}]",
+                    BundleContext.class.getName());
 
             if (this.logger.isInfoEnabled()) {
                 long elapsedTime = System.currentTimeMillis() - startTime;

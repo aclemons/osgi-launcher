@@ -129,6 +129,8 @@ public final class AutoProcessor {
     private static void processAutoDeploy(final Map<String, String> configMap, final BundleContext context,
             final String defaultAutoDeployDir, final LoadCallback callback) {
 
+        LOG.trace("Processing auto-deploy");
+
         // Determine if auto deploy actions to perform.
         String action = configMap.get(AUTO_DEPLOY_ACTION_PROPERTY);
         action = (action == null) ? "" : action;
@@ -146,8 +148,11 @@ public final class AutoProcessor {
         }
 
         if (actionList.isEmpty()) {
+            LOG.debug("No action configured");
             return;
         }
+
+        LOG.debug("Configured auto-deploy actions {}", actionList);
 
         // Perform auto-deploy actions.
         // Retrieve the Start Level service, since it will be needed
@@ -163,6 +168,8 @@ public final class AutoProcessor {
                 // Ignore and keep default level.
             }
         }
+
+        LOG.debug("Default start level for bundles {}", Integer.toString(startLevel));
 
         // Get list of already installed bundles as a map.
         final Map<String, Bundle> installedBundleMap = new HashMap<String, Bundle>();
@@ -182,8 +189,6 @@ public final class AutoProcessor {
         configs.add(new ProcessConfig(autoDir, startLevel));
 
         // get the other auto-deploy directories
-        final List<String> autoDirs = new ArrayList<String>();
-
         for (final Entry<String, String> entry : configMap.entrySet()) {
             if (entry.getKey().startsWith(AUTO_DEPLOY_DIR_PROPERTY + ".")) {
                 final String level = entry.getKey().substring((AUTO_DEPLOY_DIR_PROPERTY + ".").length());
@@ -207,7 +212,12 @@ public final class AutoProcessor {
 
         for (final ProcessConfig config : configs) {
 
+            LOG.debug("Processing directory {} with start level {}", config.directory,
+                    Integer.toString(config.startLevel));
+
             final List<String> jarList = callback.listBundles(config.directory);
+
+            LOG.trace("Found jar files {}", jarList);
 
             // Install bundle JAR files and remember the bundle objects.
             for (final String location : jarList) {
@@ -226,7 +236,7 @@ public final class AutoProcessor {
                         } finally {
                             try {
                                 stream.close();
-                            } catch (IOException e) {
+                            } catch (final IOException ex) {
                                 // ignored
                             }
                         }
