@@ -1,17 +1,17 @@
 # README
 
-This project's goal is to create a simpler, reuseable OSGi launcher. It should
+This project's goal is to create a simple, reuseable OSGi launcher. It should
 be useable as a standalone runtime or to launch an embedded runtime inside a
 WAR file.
 
-The source code for this project was originally forked from the main subproject
-of the Apache Felix SVN repository at revision 1740200.
+The source code for this project was originally forked from the 'main' subproject
+of the Apache Felix SVN repository at revision [1740200](https://svn.apache.org/repos/asf/felix/trunk/main/?p=1740200).
 
 The initial idea came from
 [FELIX-3195](https://issues.apache.org/jira/browse/FELIX-3195) which has still
 not been submitted upstream.
 
-The launcher should be able to start an osgi runtime with felix or equinox.
+The launcher should be able to start an osgi runtime with felix or equinox. (Possibly knopflerfish later)
 
 ## Configuration
 
@@ -30,5 +30,11 @@ For configuration your framework, consult its documentation. For felix, the docu
 The launcher does not require the servlet container to unpack the war file.
 Other components in your runtime may make this assumption, but it is not
 required for the launcher code.
+
+## Usage
+
+## Dependencies
+
+## Example projects
 
 More details to come.
