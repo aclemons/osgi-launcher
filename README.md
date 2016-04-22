@@ -11,7 +11,7 @@ The initial idea came from
 [FELIX-3195](https://issues.apache.org/jira/browse/FELIX-3195) which has still
 not been submitted upstream.
 
-The launcher should be able to start an osgi runtime with felix or equinox. (Possibly knopflerfish later)
+The launcher should be able to start an osgi runtime with felix, knopflerfish, or equinox.
 
 ## Configuration
 
@@ -25,7 +25,11 @@ The following configuration properties are for the launcher:
 * caffe.auto.install.<n> - Space-delimited list of bundle URLs to automatically install when Felix is started, where <n> is the start level into which the bundle will be installed (e.g., caffe.auto.install.2).
 * caffe.auto.start.<n> - Space-delimited list of bundle URLs to automatically install and start when Felix is started, where <n> is the start level into which the bundle will be installed (e.g., caffe.auto.start.2).
 
-For configuration your framework, consult its documentation. For felix, the documentation can be found [here](https://felix.apache.org/documentation/subprojects/apache-felix-framework/apache-felix-framework-configuration-properties.html#framework-configuration-properties).
+For configuration your framework, consult its documentation.
+
+For felix, the documentation can be found [here](https://felix.apache.org/documentation/subprojects/apache-felix-framework/apache-felix-framework-configuration-properties.html#framework-configuration-properties).
+For knopflerish, the documentation can be found [here](http://www.knopflerfish.org/releases/5.2.0/docs/bundledoc/framework/index.html).
+For equinox, the documentation can be found [here](http://help.eclipse.org/mars/topic/org.eclipse.platform.doc.isv/reference/misc/runtime-options.html?cp=2_1_5_0).
 
 ## WAR Deployments
 
