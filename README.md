@@ -43,4 +43,7 @@ required for the launcher code.
 
 ## Example projects
 
-More details to come.
+*WIP*
+
+Some example projects are [here](https://github.com/aclemons/osgi-launcher-examples).
+
