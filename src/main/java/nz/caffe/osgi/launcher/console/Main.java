@@ -19,8 +19,6 @@
 package nz.caffe.osgi.launcher.console;
 
 import org.osgi.framework.launch.Framework;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import nz.caffe.osgi.launcher.Launcher;
 import nz.caffe.osgi.launcher.impl.FrameworkEventPollingCallable;
@@ -40,8 +38,6 @@ public class Main {
      * Switch for specifying bundle directory.
      **/
     public static final String BUNDLE_DIR_SWITCH = "-b";
-
-    private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
     /**
      * <p>

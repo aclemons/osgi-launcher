@@ -18,7 +18,9 @@ package nz.caffe.osgi.launcher;
 import org.osgi.framework.launch.Framework;
 
 /**
- *
+ * Launchers will implement this interface. After successfully launching the
+ * framework, it provides access to the launched framework and possible its
+ * shutdown hook.
  */
 public interface Launcher {
 

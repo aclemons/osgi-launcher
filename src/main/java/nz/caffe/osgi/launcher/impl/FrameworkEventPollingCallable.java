@@ -52,6 +52,7 @@ public final class FrameworkEventPollingCallable implements Callable<Object> {
                 this.logger.debug("Got stop event {}", Integer.valueOf(event.getType()));
 
                 if (event.getType() != FrameworkEvent.STOPPED_UPDATE) {
+                    this.logger.debug("Stopping polling");
                     break;
                 }
 
