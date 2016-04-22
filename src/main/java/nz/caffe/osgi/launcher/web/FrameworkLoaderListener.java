@@ -27,6 +27,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.launch.Framework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,7 +136,7 @@ public final class FrameworkLoaderListener implements ServletContextListener {
             }
 
             sce.getServletContext().removeAttribute(FRAMEWORK_ATTRIBUTE);
-
+            sce.getServletContext().removeAttribute(BundleContext.class.getName());
             if (interrupted) {
                 Thread.currentThread().interrupt(); // reset flag
             }
@@ -167,6 +168,7 @@ public final class FrameworkLoaderListener implements ServletContextListener {
             }
 
             servletContext.setAttribute(FRAMEWORK_ATTRIBUTE, this.framework);
+            servletContext.setAttribute(BundleContext.class.getName(), this.framework.getBundleContext());
 
             final ClassLoader ccl = Thread.currentThread().getContextClassLoader();
             if (ccl == FrameworkLoaderListener.class.getClassLoader()) {
