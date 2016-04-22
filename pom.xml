@@ -20,7 +20,7 @@
   <modelVersion>4.0.0</modelVersion>
   <packaging>jar</packaging>
   <name>OSGi Launcher</name>
-  <groupId>nz.caffe.osgi</groupId>
+  <groupId>nz.caffe</groupId>
   <artifactId>nz.caffe.osgi.launcher</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <scm>
