@@ -254,7 +254,7 @@ public abstract class BaseLauncher {
         return val3;
     }
 
-    protected final LoadCallback loadCallback;
+    private final LoadCallback loadCallback;
 
     /**
      * @param loadCallback

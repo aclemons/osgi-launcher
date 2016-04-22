@@ -136,7 +136,7 @@ public class AutoProcessor {
             if (configMap.get(AUTO_DEPLOY_STARTLEVEL_PROPERTY) != null) {
                 try {
                     startLevel = Integer.parseInt(configMap.get(AUTO_DEPLOY_STARTLEVEL_PROPERTY).toString());
-                } catch (NumberFormatException ex) {
+                } catch (final NumberFormatException ex) {
                     // Ignore and keep default level.
                 }
             }

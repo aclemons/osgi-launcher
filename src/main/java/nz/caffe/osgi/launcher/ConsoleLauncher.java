@@ -55,7 +55,7 @@ public class ConsoleLauncher extends BaseLauncher {
     protected Properties loadPropertiesFile(final String systemPropertyName, final String defaultFileName,
             final String type) {
         // The config properties file is either specified by a system
-        // property or in USER_DIR/conf
+        // property or in $user.dir/conf
         // Try to load it from one of these places.
 
         // See if the property URL was specified as a property.
