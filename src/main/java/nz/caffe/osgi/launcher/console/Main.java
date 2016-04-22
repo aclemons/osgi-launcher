@@ -32,7 +32,7 @@ import nz.caffe.osgi.launcher.impl.FrameworkEventPollingCallable;
  * may even be worthwhile to reuse some of its property handling capabilities.
  * </p>
  **/
-public class Main {
+public final class Main {
 
     /**
      * Switch for specifying bundle directory.

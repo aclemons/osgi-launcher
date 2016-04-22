@@ -32,7 +32,7 @@ import nz.caffe.osgi.launcher.LoadCallback;
 /**
  * Allow loading bundles from inside a WAR file.
  */
-public class ServletContextCallback implements LoadCallback {
+public final class ServletContextCallback implements LoadCallback {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

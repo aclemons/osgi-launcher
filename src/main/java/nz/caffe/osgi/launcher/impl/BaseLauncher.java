@@ -285,7 +285,7 @@ public abstract class BaseLauncher implements Launcher {
     /**
      * @return the framework
      */
-    public Framework getFramework() {
+    public final Framework getFramework() {
         if (this.framework == null) {
             throw new IllegalStateException("Framework not launched");
         }
@@ -296,7 +296,7 @@ public abstract class BaseLauncher implements Launcher {
     /**
      * @return the shutdownHook
      */
-    public Thread getShutdownHook() {
+    public final Thread getShutdownHook() {
         if (this.framework == null) {
             throw new IllegalStateException("Framework not launched");
         }
@@ -307,7 +307,7 @@ public abstract class BaseLauncher implements Launcher {
     /**
      * @throws Exception
      */
-    public void launch() throws Exception {
+    public final void launch() throws Exception {
         // Load system properties.
         loadSystemProperties();
 

@@ -43,7 +43,7 @@ import nz.caffe.osgi.launcher.LoadCallback;
 
 /**
  */
-public class AutoProcessor {
+public final class AutoProcessor {
     /**
      * The property name used for the bundle directory.
      **/

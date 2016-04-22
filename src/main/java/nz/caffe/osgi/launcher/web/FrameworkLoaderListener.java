@@ -27,7 +27,6 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
-import org.osgi.framework.BundleException;
 import org.osgi.framework.launch.Framework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +37,7 @@ import nz.caffe.osgi.launcher.impl.FrameworkEventPollingCallable;
 /**
  * This starts the framework when deploying inside a WAR file.
  */
-public class FrameworkLoaderListener implements ServletContextListener {
+public final class FrameworkLoaderListener implements ServletContextListener {
 
     /**
      * The 'current' framework instance, if the ContextLoader class is deployed
@@ -60,6 +59,13 @@ public class FrameworkLoaderListener implements ServletContextListener {
      * an exception or error as value.
      */
     public static final String FRAMEWORK_ATTRIBUTE = FrameworkLoaderListener.class.getName() + ".FWK";
+
+    /**
+     * Name of servlet context parameter (i.e., {@value}) that can specify
+     * whether to use the servlet context's temp dir attribute (
+     * {@link ServletContext#TEMPDIR}) as the osdi cache dir. Default is false
+     */
+    public static final String USE_SERVLET_CONTEXT_TEMP_DIR_PARAM = "useServletContextTempDir";
 
     /**
      * Obtain the framework instance for the current thread (i.e. for the
@@ -177,10 +183,15 @@ public class FrameworkLoaderListener implements ServletContextListener {
                 this.logger.info("OSGi Framework: initialisation completed in {} ms", Long.toString(elapsedTime));
             }
 
-        } catch (final RuntimeException ex) {
+        } catch (final Exception ex) {
             this.logger.error("Framework initialisation failed", ex);
             servletContext.setAttribute(FRAMEWORK_ATTRIBUTE, ex);
-            throw ex;
+
+            if (ex instanceof RuntimeException) {
+                throw (RuntimeException) ex;
+            }
+
+            throw new IllegalStateException(ex);
         } catch (final Error err) {
             this.logger.error("Framework initialisation failed", err);
             servletContext.setAttribute(FRAMEWORK_ATTRIBUTE, err);
@@ -189,27 +200,35 @@ public class FrameworkLoaderListener implements ServletContextListener {
 
     }
 
-    private void createFrameworkInstance(final ServletContext servletContext) {
-        // TODO: make cache dir configurable through web.xml
+    private void createFrameworkInstance(final ServletContext servletContext) throws Exception {
+        final String useServletContextTempDirConfig = servletContext
+                .getInitParameter(USE_SERVLET_CONTEXT_TEMP_DIR_PARAM);
 
         final File cacheDir;
-        final File servletTempDir = (File) servletContext.getAttribute(ServletContext.TEMPDIR);
-        if (servletTempDir == null) {
-            cacheDir = null;
-        } else {
-            cacheDir = new File(servletTempDir, "felix-cache");
+        if (Boolean.parseBoolean(useServletContextTempDirConfig)) {
+            this.logger.debug("Configured to use servlet context's temp dir as the osgi cache dir.");
 
-            this.logger.debug("Using osgi cache dir {}", cacheDir);
+            final File servletTempDir = (File) servletContext.getAttribute(ServletContext.TEMPDIR);
+            if (servletTempDir == null) {
+                cacheDir = null;
+
+                this.logger.warn("Servlet context did not have an attribute name {}", ServletContext.TEMPDIR);
+
+            } else {
+                cacheDir = new File(servletTempDir, "felix-cache");
+
+                this.logger.debug("Using osgi cache dir {}", cacheDir);
+            }
+        } else {
+            this.logger.debug("Not using servlet context's temp dir as the osgi cache dir.");
+
+            cacheDir = null;
         }
 
         final Launcher launcher = new WarLauncher(null, cacheDir == null ? null : cacheDir.getAbsolutePath(),
                 new ServletContextCallback(servletContext), servletContext);
 
-        try {
-            launcher.launch();
-        } catch (final Exception e) {
-            throw new IllegalStateException(e);
-        }
+        launcher.launch();
 
         final Framework fwk = launcher.getFramework();
         final Thread hook = launcher.getShutdownHook();
@@ -217,11 +236,7 @@ public class FrameworkLoaderListener implements ServletContextListener {
         this.framework = fwk;
         this.shutdownHook = hook;
 
-        try {
-            fwk.start();
-        } catch (BundleException e) {
-            throw new IllegalStateException(e);
-        }
+        fwk.start();
 
         final Callable<Object> worker = new FrameworkEventPollingCallable(fwk, hook);
 

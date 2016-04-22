@@ -33,7 +33,7 @@ import nz.caffe.osgi.launcher.impl.BaseLauncher;
  * runtime for console (standalone) based applications.
  * </p>
  **/
-public class ConsoleLauncher extends BaseLauncher {
+public final class ConsoleLauncher extends BaseLauncher {
 
     /**
      * The default name used for the bundle directory.

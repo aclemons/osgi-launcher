@@ -34,7 +34,7 @@ import nz.caffe.osgi.launcher.impl.BaseLauncher;
  * runtime when it is embedded inside a WAR file.
  * </p>
  **/
-public class WarLauncher extends BaseLauncher {
+public final class WarLauncher extends BaseLauncher {
 
     /**
      * The default name used for the bundle directory.
