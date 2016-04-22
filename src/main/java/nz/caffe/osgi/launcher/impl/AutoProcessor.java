@@ -21,6 +21,8 @@ package nz.caffe.osgi.launcher.impl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -32,7 +34,8 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
-import org.osgi.service.startlevel.StartLevel;
+import org.osgi.framework.startlevel.BundleStartLevel;
+import org.osgi.framework.startlevel.FrameworkStartLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,6 +84,24 @@ public class AutoProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(AutoProcessor.class);
 
     /**
+     */
+    private static class ProcessConfig {
+        final String directory;
+        final List<Bundle> installedBundles = new ArrayList<Bundle>();
+        final int startLevel;
+
+        /**
+         * @param directory
+         * @param startLevel
+         */
+        ProcessConfig(String directory, int startLevel) {
+            super();
+            this.directory = directory;
+            this.startLevel = startLevel;
+        }
+    }
+
+    /**
      * Used to instigate auto-deploy directory process and
      * auto-install/auto-start configuration property processing during.
      *
@@ -124,40 +145,71 @@ public class AutoProcessor {
             }
         }
 
-        // Perform auto-deploy actions.
-        if (actionList.size() > 0) {
-            // Retrieve the Start Level service, since it will be needed
-            // to set the start level of the installed bundles.
-            final StartLevel sl = (StartLevel) context
-                    .getService(context.getServiceReference(org.osgi.service.startlevel.StartLevel.class.getName()));
+        if (actionList.isEmpty()) {
+            return;
+        }
 
-            // Get start level for auto-deploy bundles.
-            int startLevel = sl.getInitialBundleStartLevel();
-            if (configMap.get(AUTO_DEPLOY_STARTLEVEL_PROPERTY) != null) {
+        // Perform auto-deploy actions.
+        // Retrieve the Start Level service, since it will be needed
+        // to set the start level of the installed bundles.
+        final FrameworkStartLevel sl = context.getBundle().adapt(FrameworkStartLevel.class);
+
+        // Get start level for auto-deploy bundles.
+        int startLevel = sl.getInitialBundleStartLevel();
+        if (configMap.get(AUTO_DEPLOY_STARTLEVEL_PROPERTY) != null) {
+            try {
+                startLevel = Integer.parseInt(configMap.get(AUTO_DEPLOY_STARTLEVEL_PROPERTY).toString());
+            } catch (final NumberFormatException ex) {
+                // Ignore and keep default level.
+            }
+        }
+
+        // Get list of already installed bundles as a map.
+        final Map<String, Bundle> installedBundleMap = new HashMap<String, Bundle>();
+        final Bundle[] bundles = context.getBundles();
+        for (final Bundle bundle : bundles) {
+            installedBundleMap.put(bundle.getLocation(), bundle);
+        }
+
+        final List<ProcessConfig> configs = new ArrayList<ProcessConfig>();
+
+        // Get the auto deploy directory.
+        String autoDir = configMap.get(AUTO_DEPLOY_DIR_PROPERTY);
+        autoDir = (autoDir == null) ? defaultAutoDeployDir : autoDir;
+        // Look in the specified bundle directory to create a list
+        // of all JAR files to install.
+
+        configs.add(new ProcessConfig(autoDir, startLevel));
+
+        // get the other auto-deploy directories
+        final List<String> autoDirs = new ArrayList<String>();
+
+        for (final Entry<String, String> entry : configMap.entrySet()) {
+            if (entry.getKey().startsWith(AUTO_DEPLOY_DIR_PROPERTY + ".")) {
+                final String level = entry.getKey().substring((AUTO_DEPLOY_DIR_PROPERTY + ".").length());
+
                 try {
-                    startLevel = Integer.parseInt(configMap.get(AUTO_DEPLOY_STARTLEVEL_PROPERTY).toString());
+                    startLevel = Integer.parseInt(level);
                 } catch (final NumberFormatException ex) {
                     // Ignore and keep default level.
                 }
+
+                configs.add(new ProcessConfig(entry.getValue(), startLevel));
             }
+        }
 
-            // Get list of already installed bundles as a map.
-            final Map<String, Bundle> installedBundleMap = new HashMap<String, Bundle>();
-            final Bundle[] bundles = context.getBundles();
-            for (final Bundle bundle : bundles) {
-                installedBundleMap.put(bundle.getLocation(), bundle);
+        // sort to start in the correct order
+        Collections.sort(configs, new Comparator<ProcessConfig>() {
+            public int compare(final ProcessConfig o1, final ProcessConfig o2) {
+                return (o1.startLevel < o2.startLevel) ? -1 : ((o1.startLevel == o2.startLevel) ? 0 : 1);
             }
+        });
 
-            // Get the auto deploy directory.
-            String autoDir = configMap.get(AUTO_DEPLOY_DIR_PROPERTY);
-            autoDir = (autoDir == null) ? defaultAutoDeployDir : autoDir;
-            // Look in the specified bundle directory to create a list
-            // of all JAR files to install.
+        for (final ProcessConfig config : configs) {
 
-            final List<String> jarList = callback.listBundles(autoDir);
+            final List<String> jarList = callback.listBundles(config.directory);
 
             // Install bundle JAR files and remember the bundle objects.
-            final List<Bundle> startBundleList = new ArrayList<Bundle>();
             for (final String location : jarList) {
                 // Look up the bundle by location, removing it from
                 // the map of installed bundles so the remaining bundles
@@ -178,8 +230,8 @@ public class AutoProcessor {
                                 // ignored
                             }
                         }
-
                     }
+
                     // If the bundle is already installed, then update it
                     // if the 'update' action is present.
                     else if ((b != null) && actionList.contains(AUTO_DEPLOY_UPDATE_VALUE)) {
@@ -190,33 +242,38 @@ public class AutoProcessor {
                     // then add it to the list of bundles to potentially start
                     // and also set its start level accordingly.
                     if ((b != null) && !isFragment(b)) {
-                        startBundleList.add(b);
-                        sl.setBundleStartLevel(b, startLevel);
+                        config.installedBundles.add(b);
+
+                        final BundleStartLevel bsl = b.adapt(BundleStartLevel.class);
+                        bsl.setStartLevel(config.startLevel);
+
                     }
                 } catch (final BundleException ex) {
                     LOG.error("Auto-deploy install failed for " + location + ".", ex);
                 }
             }
+        }
 
-            // Uninstall all bundles not in the auto-deploy directory if
-            // the 'uninstall' action is present.
-            if (actionList.contains(AUTO_DEPLOY_UNINSTALL_VALUE)) {
-                for (final Entry<String, Bundle> entry : installedBundleMap.entrySet()) {
-                    final Bundle b = entry.getValue();
-                    if (b.getBundleId() != 0) {
-                        try {
-                            b.uninstall();
-                        } catch (final BundleException ex) {
-                            LOG.error("Auto-deploy uninstall failed for " + b.getLocation() + ".", ex);
-                        }
+        // Uninstall all bundles not in the auto-deploy directory if
+        // the 'uninstall' action is present.
+        if (actionList.contains(AUTO_DEPLOY_UNINSTALL_VALUE)) {
+            for (final Entry<String, Bundle> entry : installedBundleMap.entrySet()) {
+                final Bundle b = entry.getValue();
+                if (b.getBundleId() != 0) {
+                    try {
+                        b.uninstall();
+                    } catch (final BundleException ex) {
+                        LOG.error("Auto-deploy uninstall failed for " + b.getLocation() + ".", ex);
                     }
                 }
             }
+        }
 
-            // Start all installed and/or updated bundles if the 'start'
-            // action is present.
+        // Start all installed and/or updated bundles if the 'start'
+        // action is present.
+        for (final ProcessConfig config : configs) {
             if (actionList.contains(AUTO_DEPLOY_START_VALUE)) {
-                for (final Bundle bundle : startBundleList) {
+                for (final Bundle bundle : config.installedBundles) {
                     try {
                         bundle.start();
                     } catch (final BundleException ex) {
@@ -235,10 +292,10 @@ public class AutoProcessor {
      */
     private static void processAutoProperties(final Map<String, String> configMap, final BundleContext context) {
 
+        // Perform auto-deploy actions.
         // Retrieve the Start Level service, since it will be needed
         // to set the start level of the installed bundles.
-        final StartLevel sl = (StartLevel) context
-                .getService(context.getServiceReference(org.osgi.service.startlevel.StartLevel.class.getName()));
+        final FrameworkStartLevel sl = context.getBundle().adapt(FrameworkStartLevel.class);
 
         // Retrieve all auto-install and auto-start properties and install
         // their associated bundles. The auto-install property specifies a
@@ -273,8 +330,10 @@ public class AutoProcessor {
             final StringTokenizer st = new StringTokenizer(entry.getValue(), "\" ", true);
             for (String location = nextLocation(st); location != null; location = nextLocation(st)) {
                 try {
+
                     final Bundle b = context.installBundle(location, null);
-                    sl.setBundleStartLevel(b, startLevel);
+                    final BundleStartLevel bsl = b.adapt(BundleStartLevel.class);
+                    bsl.setStartLevel(startLevel);
                 } catch (final Exception ex) {
                     LOG.error("Auto-properties install for " + location + " failed.", ex);
                 }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package nz.caffe.osgi.launcher;
+package nz.caffe.osgi.launcher.web;
 
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -25,6 +25,7 @@ import java.util.Properties;
 
 import javax.servlet.ServletContext;
 
+import nz.caffe.osgi.launcher.LoadCallback;
 import nz.caffe.osgi.launcher.impl.BaseLauncher;
 
 /**
@@ -43,11 +44,14 @@ public class WarLauncher extends BaseLauncher {
     private final ServletContext servletContext;
 
     /**
+     * @param bundleDir
+     * @param cacheDir
      * @param loadCallback
-     * @param servletContext
+     * @param servletContext 
      */
-    public WarLauncher(final LoadCallback loadCallback, final ServletContext servletContext) {
-        super(loadCallback);
+    public WarLauncher(final String bundleDir, final String cacheDir, final LoadCallback loadCallback,
+            final ServletContext servletContext) {
+        super(bundleDir, cacheDir, loadCallback);
         this.servletContext = servletContext;
     }
 

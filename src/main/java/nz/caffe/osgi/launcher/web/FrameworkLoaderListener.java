@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nz.caffe.osgi.launcher;
+package nz.caffe.osgi.launcher.web;
 
 import java.io.File;
 import java.util.concurrent.Callable;
@@ -27,12 +27,12 @@ import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
 import org.osgi.framework.BundleException;
-import org.osgi.framework.FrameworkEvent;
 import org.osgi.framework.launch.Framework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import nz.caffe.osgi.launcher.impl.ServletContextCallback;
+import nz.caffe.osgi.launcher.Launcher;
+import nz.caffe.osgi.launcher.impl.FrameworkEventPollingCallable;
 
 /**
  * This starts the framework when deploying inside a WAR file.
@@ -104,13 +104,20 @@ public class FrameworkLoaderListener implements ServletContextListener {
             sce.getServletContext().log("Using cache-dir " + cacheDir);
         }
 
-        final Framework fwk;
+        final Launcher launcher = new WarLauncher(null, cacheDir == null ? null : cacheDir.getAbsolutePath(),
+                new ServletContextCallback(sce.getServletContext()), sce.getServletContext());
+
         try {
-            fwk = new WarLauncher(new ServletContextCallback(sce.getServletContext()), sce.getServletContext())
-                    .launch(null, cacheDir == null ? null : cacheDir.getAbsolutePath(), false);
+            launcher.launch();
         } catch (final Exception e) {
             throw new IllegalStateException(e);
         }
+
+        final Framework fwk = launcher.getFramework();
+        final Thread hook = launcher.getShutdownHook();
+
+        this.framework = fwk;
+        this.shutdownHook = hook;
 
         try {
             fwk.start();
@@ -118,28 +125,9 @@ public class FrameworkLoaderListener implements ServletContextListener {
             throw new IllegalStateException(e);
         }
 
-        this.framework = fwk;
+        sce.getServletContext().setAttribute(FRAMEWORK_ATTRIBUTE, fwk);
 
-        final Callable<Object> worker = new Callable<Object>() {
-
-            public Object call() throws Exception {
-                boolean first = true;
-                FrameworkEvent event;
-                do {
-                    if (!first) {
-                        // Start the framework.
-                        fwk.start();
-                    }
-                    // Wait for framework to stop to exit the VM.
-                    event = fwk.waitForStop(0);
-                    first = false;
-                }
-                // If the framework was updated, then restart it.
-                while (event.getType() == FrameworkEvent.STOPPED_UPDATE);
-
-                return null;
-            }
-        };
+        final Callable<Object> worker = new FrameworkEventPollingCallable(fwk, hook);
 
         this.pool = Executors.newFixedThreadPool(1);
 

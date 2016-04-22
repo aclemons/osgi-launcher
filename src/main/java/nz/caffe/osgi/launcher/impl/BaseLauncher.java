@@ -36,6 +36,7 @@ import org.osgi.framework.launch.FrameworkFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import nz.caffe.osgi.launcher.Launcher;
 import nz.caffe.osgi.launcher.LoadCallback;
 
 /**
@@ -47,39 +48,37 @@ import nz.caffe.osgi.launcher.LoadCallback;
  * may even be worthwhile to reuse some of its property handling capabilities.
  * </p>
  **/
-public abstract class BaseLauncher {
+public abstract class BaseLauncher implements Launcher {
     /**
-     * The property name used to specify whether the launcher should install a
-     * shutdown hook.
-     **/
-    public static final String SHUTDOWN_HOOK_PROP = "caffe.shutdown.hook";
-    /**
-     * The property name used to specify an URL to the system property file.
-     **/
-    public static final String SYSTEM_PROPERTIES_PROP = "caffe.system.properties";
-    /**
-     * The default name used for the system properties file.
-     **/
-    public static final String SYSTEM_PROPERTIES_FILE_VALUE = "system.properties";
-    /**
-     * The property name used to specify an URL to the configuration property
-     * file to be used for the created the framework instance.
-     **/
-    public static final String CONFIG_PROPERTIES_PROP = "caffe.config.properties";
+     * Name of the configuration directory.
+     */
+    public static final String CONFIG_DIRECTORY = "conf";
     /**
      * The default name used for the configuration properties file.
      **/
     public static final String CONFIG_PROPERTIES_FILE_VALUE = "config.properties";
     /**
-     * Name of the configuration directory.
-     */
-    public static final String CONFIG_DIRECTORY = "conf";
-
+     * The property name used to specify an URL to the configuration property
+     * file to be used for the created the framework instance.
+     **/
+    public static final String CONFIG_PROPERTIES_PROP = "caffe.config.properties";
     private static final String DELIM_START = "${";
-
     private static final String DELIM_STOP = "}";
+    /**
+     * The property name used to specify whether the launcher should install a
+     * shutdown hook.
+     **/
+    public static final String SHUTDOWN_HOOK_PROP = "caffe.shutdown.hook";
 
-    protected final Logger logger = LoggerFactory.getLogger(getClass());
+    /**
+     * The default name used for the system properties file.
+     **/
+    public static final String SYSTEM_PROPERTIES_FILE_VALUE = "system.properties";
+
+    /**
+     * The property name used to specify an URL to the system property file.
+     **/
+    public static final String SYSTEM_PROPERTIES_PROP = "caffe.system.properties";
 
     protected static void closeQuietly(final InputStream input) {
         try {
@@ -254,13 +253,25 @@ public abstract class BaseLauncher {
         return val3;
     }
 
+    private final String bundleDir;
+
+    private final String cacheDir;
+    private Framework framework;
     private final LoadCallback loadCallback;
 
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
+
+    private Thread shutdownHook;
+
     /**
+     * @param bundleDir
+     * @param cacheDir
      * @param loadCallback
      */
-    public BaseLauncher(final LoadCallback loadCallback) {
+    public BaseLauncher(final String bundleDir, final String cacheDir, final LoadCallback loadCallback) {
         super();
+        this.bundleDir = bundleDir;
+        this.cacheDir = cacheDir;
         this.loadCallback = loadCallback;
     }
 
@@ -272,14 +283,31 @@ public abstract class BaseLauncher {
     protected abstract String getDefaultAutoDeployDirectory();
 
     /**
-     * @param bundleDir
-     * @param cacheDir
-     * @param useSystemExit
-     * @return the framework instance
+     * @return the framework
+     */
+    public Framework getFramework() {
+        if (this.framework == null) {
+            throw new IllegalStateException("Framework not launched");
+        }
+
+        return this.framework;
+    }
+
+    /**
+     * @return the shutdownHook
+     */
+    public Thread getShutdownHook() {
+        if (this.framework == null) {
+            throw new IllegalStateException("Framework not launched");
+        }
+
+        return this.shutdownHook;
+    }
+
+    /**
      * @throws Exception
      */
-    public Framework launch(final String bundleDir, final String cacheDir, final boolean useSystemExit)
-            throws Exception {
+    public void launch() throws Exception {
         // Load system properties.
         loadSystemProperties();
 
@@ -297,14 +325,14 @@ public abstract class BaseLauncher {
 
         // If there is a passed in bundle auto-deploy directory, then
         // that overwrites anything in the config file.
-        if (bundleDir != null) {
-            configProps.put(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY, bundleDir);
+        if (this.bundleDir != null) {
+            configProps.put(AutoProcessor.AUTO_DEPLOY_DIR_PROPERTY, this.bundleDir);
         }
 
         // If there is a passed in bundle cache directory, then
         // that overwrites anything in the config file.
-        if (cacheDir != null) {
-            configProps.put(Constants.FRAMEWORK_STORAGE, cacheDir);
+        if (this.cacheDir != null) {
+            configProps.put(Constants.FRAMEWORK_STORAGE, this.cacheDir);
         }
 
         final AtomicReference<Framework> fwkRef = new AtomicReference<Framework>();
@@ -312,9 +340,8 @@ public abstract class BaseLauncher {
         // If enabled, register a shutdown hook to make sure the framework is
         // cleanly shutdown when the VM exits.
         final String enableHook = configProps.get(SHUTDOWN_HOOK_PROP);
-        final Thread shutdownHook;
         if (enableHook == null || !enableHook.equalsIgnoreCase("false")) {
-            shutdownHook = new Thread("Framework Shutdown Hook") {
+            this.shutdownHook = new Thread("Framework Shutdown Hook") {
                 @Override
                 public void run() {
                     try {
@@ -328,9 +355,7 @@ public abstract class BaseLauncher {
                     }
                 }
             };
-            Runtime.getRuntime().addShutdownHook(shutdownHook);
-        } else {
-            shutdownHook = null;
+            Runtime.getRuntime().addShutdownHook(this.shutdownHook);
         }
 
         // Create an instance of the framework.
@@ -345,7 +370,7 @@ public abstract class BaseLauncher {
         // and auto-install/auto-start properties.
         AutoProcessor.process(configProps, fwk.getBundleContext(), getDefaultAutoDeployDirectory(), this.loadCallback);
 
-        return fwk;
+        this.framework = fwk;
     }
 
     /**

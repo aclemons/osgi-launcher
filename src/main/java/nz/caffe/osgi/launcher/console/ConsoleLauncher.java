@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package nz.caffe.osgi.launcher;
+package nz.caffe.osgi.launcher.console;
 
 import java.io.File;
 import java.io.InputStream;
@@ -24,6 +24,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Properties;
 
+import nz.caffe.osgi.launcher.LoadCallback;
 import nz.caffe.osgi.launcher.impl.BaseLauncher;
 
 /**
@@ -40,10 +41,12 @@ public class ConsoleLauncher extends BaseLauncher {
     public static final String AUTO_DEPLOY_DIR_VALUE = "bundle";
 
     /**
+     * @param bundleDir
+     * @param cacheDir
      * @param loadCallback
      */
-    public ConsoleLauncher(final LoadCallback loadCallback) {
-        super(loadCallback);
+    public ConsoleLauncher(final String bundleDir, final String cacheDir, final LoadCallback loadCallback) {
+        super(bundleDir, cacheDir, loadCallback);
     }
 
     @Override

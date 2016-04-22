@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package nz.caffe.osgi.launcher;
+package nz.caffe.osgi.launcher.console;
 
-import org.osgi.framework.FrameworkEvent;
 import org.osgi.framework.launch.Framework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import nz.caffe.osgi.launcher.impl.FileSystemCallback;
+import nz.caffe.osgi.launcher.Launcher;
+import nz.caffe.osgi.launcher.impl.FrameworkEventPollingCallable;
 
 /**
  * <p>
@@ -180,25 +180,20 @@ public class Main {
             System.exit(1);
         }
 
-        final ConsoleLauncher launcher = new ConsoleLauncher(new FileSystemCallback());
+        final Launcher launcher = new ConsoleLauncher(bundleDir, cacheDir, new FileSystemCallback());
 
-        final Framework fwk = launcher.launch(bundleDir, cacheDir, true);
+        launcher.launch();
 
-        FrameworkEvent event;
-        do {
-            // Start the framework.
-            fwk.start();
-            // Wait for framework to stop to exit the VM.
-            event = fwk.waitForStop(0);
+        final Framework fwk = launcher.getFramework();
+        final Thread shutdownHook = launcher.getShutdownHook();
 
-            LOG.debug("Got stop event {}", Integer.valueOf(event.getType()));
+        fwk.start();
 
-            // If the framework was updated, then restart it.
-        } while (event.getType() == FrameworkEvent.STOPPED_UPDATE);
+        final FrameworkEventPollingCallable callable = new FrameworkEventPollingCallable(fwk, shutdownHook);
 
-        // Runtime.getRuntime().removeShutdownHook(shutdownHook);
+        callable.call();
 
-        // Otherwise, exit.
+        // exit.
         System.exit(0);
     }
 

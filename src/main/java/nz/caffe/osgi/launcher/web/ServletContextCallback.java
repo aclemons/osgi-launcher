@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nz.caffe.osgi.launcher.impl;
+package nz.caffe.osgi.launcher.web;
 
 import java.io.InputStream;
 import java.util.ArrayList;
