@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Andrew Clemons <andrew.clemons@gmail.com>
+ * Copyright 2016-2017 Andrew Clemons <andrew.clemons@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -201,7 +201,6 @@ public final class FrameworkLoaderListener implements ServletContextListener {
             servletContext.setAttribute(FRAMEWORK_ATTRIBUTE, err);
             throw err;
         }
-
     }
 
     private void createFrameworkInstance(final ServletContext servletContext) throws Exception {
@@ -248,5 +247,4 @@ public final class FrameworkLoaderListener implements ServletContextListener {
 
         this.future = this.pool.submit(worker);
     }
-
 }

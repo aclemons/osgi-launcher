@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Andrew Clemons <andrew.clemons@gmail.com>
+ * Copyright 2016-2017 Andrew Clemons <andrew.clemons@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import org.osgi.framework.launch.Framework;
 
 /**
  * Launchers will implement this interface. After successfully launching the
- * framework, it provides access to the launched framework and possible its
+ * framework, it provides access to the launched framework and possibly its
  * shutdown hook.
  */
 public interface Launcher {

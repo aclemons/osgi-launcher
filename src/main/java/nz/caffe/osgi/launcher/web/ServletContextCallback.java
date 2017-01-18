@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Andrew Clemons <andrew.clemons@gmail.com>
+ * Copyright 2016-2017 Andrew Clemons <andrew.clemons@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,6 @@ public final class ServletContextCallback implements LoadCallback {
     }
 
     public List<String> listBundles(final String directory) {
-
         final Set<String> files = this.servletContext.getResourcePaths(directory);
 
         final List<String> jarList = new ArrayList<String>();
@@ -65,7 +64,6 @@ public final class ServletContextCallback implements LoadCallback {
         Collections.sort(jarList);
 
         return jarList;
-
     }
 
     public InputStream openStream(final String bundle) throws BundleException {
@@ -78,5 +76,4 @@ public final class ServletContextCallback implements LoadCallback {
 
         return stream;
     }
-
 }

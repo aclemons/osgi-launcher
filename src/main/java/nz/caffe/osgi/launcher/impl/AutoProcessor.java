@@ -128,7 +128,6 @@ public final class AutoProcessor {
      */
     private static void processAutoDeploy(final Map<String, String> configMap, final BundleContext context,
             final String defaultAutoDeployDir, final LoadCallback callback) {
-
         LOG.trace("Processing auto-deploy");
 
         // Determine if auto deploy actions to perform.
@@ -164,7 +163,7 @@ public final class AutoProcessor {
         if (configMap.get(AUTO_DEPLOY_STARTLEVEL_PROPERTY) != null) {
             try {
                 startLevel = Integer.parseInt(configMap.get(AUTO_DEPLOY_STARTLEVEL_PROPERTY).toString());
-            } catch (final NumberFormatException ex) {
+            } catch (@SuppressWarnings("unused") final NumberFormatException ex) {
                 // Ignore and keep default level.
             }
         }
@@ -195,7 +194,7 @@ public final class AutoProcessor {
 
                 try {
                     startLevel = Integer.parseInt(level);
-                } catch (final NumberFormatException ex) {
+                } catch (@SuppressWarnings("unused") final NumberFormatException ex) {
                     // Ignore and keep default level.
                 }
 
@@ -236,7 +235,7 @@ public final class AutoProcessor {
                         } finally {
                             try {
                                 stream.close();
-                            } catch (final IOException ex) {
+                            } catch (@SuppressWarnings("unused") final IOException ex) {
                                 // ignored
                             }
                         }

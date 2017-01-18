@@ -54,6 +54,7 @@ public final class ConsoleLauncher extends BaseLauncher {
         return AUTO_DEPLOY_DIR_VALUE;
     }
 
+    @SuppressWarnings("resource")
     @Override
     protected Properties loadPropertiesFile(final String systemPropertyName, final String defaultFileName,
             final String type) {
@@ -103,5 +104,4 @@ public final class ConsoleLauncher extends BaseLauncher {
 
         return props;
     }
-
 }

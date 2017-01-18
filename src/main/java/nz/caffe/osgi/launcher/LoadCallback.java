@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Andrew Clemons <andrew.clemons@gmail.com>
+ * Copyright 2016-2017 Andrew Clemons <andrew.clemons@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,5 +45,4 @@ public interface LoadCallback {
      *             if opening the stream fails
      */
     InputStream openStream(final String path) throws BundleException;
-
 }

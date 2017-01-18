@@ -118,6 +118,7 @@ public abstract class BaseLauncher implements Launcher {
      * @throws Exception
      *             if any errors occur.
      **/
+    @SuppressWarnings("resource")
     private static FrameworkFactory getFrameworkFactory() throws Exception {
         final URL url = BaseLauncher.class.getClassLoader()
                 .getResource("META-INF/services/org.osgi.framework.launch.FrameworkFactory");
@@ -389,7 +390,6 @@ public abstract class BaseLauncher implements Launcher {
      *         error.
      **/
     private Map<String, String> loadConfigProperties() {
-
         final Properties props = loadPropertiesFile(BaseLauncher.CONFIG_PROPERTIES_PROP,
                 BaseLauncher.CONFIG_PROPERTIES_FILE_VALUE, "config");
 

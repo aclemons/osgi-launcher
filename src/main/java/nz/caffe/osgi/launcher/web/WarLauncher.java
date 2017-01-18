@@ -60,6 +60,7 @@ public final class WarLauncher extends BaseLauncher {
         return AUTO_DEPLOY_DIR_VALUE;
     }
 
+    @SuppressWarnings("resource")
     @Override
     protected Properties loadPropertiesFile(final String systemPropertyName, final String defaultFileName,
             final String type) {
@@ -136,5 +137,4 @@ public final class WarLauncher extends BaseLauncher {
 
         return props;
     }
-
 }
